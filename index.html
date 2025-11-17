@@ -361,6 +361,7 @@ async function createCharacter(){
   showPage('game');
   updateActiveDisplay();
   refresh(); renderLog(); renderAchievements();
+    } 
 async function selectChar(idx){
   const c = characters[idx];
   const pwdSaisi = prompt('Mot de passe pour '+c.name+' :');
@@ -826,4 +827,5 @@ document.getElementById('notes').addEventListener('input',e=>{
 });
 </script>
 </body>
+
 </html>
