@@ -1,0 +1,829 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <!-- Supabase client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- bcrypt pour hacher les mots de passe -->
+<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+
+<script>
+  // 1.  Initialiser le client
+  const sb = supabase.createClient(
+        'https://eeasjbjorfgkzdvdicfe.supabase.co',   // URL
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlYXNqYmpvcmZna3pkdmRpY2ZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzOTQ1MzksImV4cCI6MjA3ODk3MDUzOX0.ELTpg407XX0eXBlS9UrMGtNHUcfWGnKUnz9jXLiHEc4'          // anon key
+  );
+</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fox RPG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300 ;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--rouge:#ff003c;--blanc:#ffffff;--glass:rgba(255,255,255,.55);--radius:12px;--shadow:0 12px 40px rgba(0,0,0,.25);}
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif;}
+    body{min-height:100vh;background:radial-gradient(circle at 30% 20%,rgba(255,0,60,.15) 0%,transparent 50%),radial-gradient(circle at 80% 70%,rgba(255,255,255,.1) 0%,transparent 50%),linear-gradient(135deg,#0f0f0f 0%,#1a1a1a 100%);color:var(--blanc);display:flex;flex-direction:column;align-items:center;padding:3rem 1rem;}
+    h1{font-size:3rem;font-weight:700;background:linear-gradient(90deg,var(--rouge),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem;}
+    .fox-badge{font-size:1rem;color:var(--rouge);font-weight:500;margin-bottom:2.5rem;}
+    h2{margin:2rem 0 1rem;font-weight:500;display:flex;align-items:center;gap:.5rem;}h2:before{content:'◆';color:var(--rouge);}
+    .frame{width:100%;max-width:840px;background:var(--glass);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem 2.5rem;margin-bottom:2rem;}
+    button{cursor:pointer;border-radius:var(--radius);border:none;padding:.7rem 1.2rem;font-weight:500;font-size:1rem;background:var(--rouge);color:var(--blanc);box-shadow:0 0 14px var(--rouge);transition:all .3s;}button:hover{box-shadow:0 0 24px var(--rouge);}
+    select,input,textarea{width:100%;padding:.7rem;border:none;border-radius:var(--radius);font-size:1rem;background:rgba(255,255,255,.9);color:#111;}textarea{resize:vertical;min-height:120px;}
+    label{display:block;margin:.8rem 0 .4rem;font-size:.95rem;}
+    table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:.5rem;}th,td{padding:.7rem;text-align:left;border-bottom:1px solid rgba(255,255,255,.1);}
+    .page{display:none;}.page.active{display:block;}
+    .logbook{display:flex;flex-direction:column;gap:1rem;margin-top:1.2rem;}.log-entry{background:rgba(255,255,255,.08);border-left:4px solid var(--rouge);padding:1rem;border-radius:var(--radius);}.log-entry header{display:flex;justify-content:space-between;font-size:.8rem;opacity:.7;}.log-entry p{white-space:pre-wrap;margin-top:.4rem;}
+    #progressBar{height:30px;background:rgba(255,255,255,.1);border-radius:15px;overflow:hidden;margin:.8rem 0;}#progressFill{height:100%;background:var(--rouge);width:0%;transition:width .5s;display:flex;align-items:center;justify-content:center;color:var(--blanc);font-size:.9rem;font-weight:600;}
+    .admin-only{display:none;}
+    .hist-line{font-size:.75rem;opacity:.8;margin-top:.3rem;}
+    /* Tooltip succès */
+    .achievement{position:relative;display:inline-block;margin:.25rem;padding:.4rem .8rem;border-radius:8px;font-size:.8rem;background:rgba(255,255,255,.15);color:#aaa;cursor:help;}
+    .achievement.unlocked{background:var(--rouge);color:#fff;}
+    .achievement .tooltiptext{visibility:hidden;width:220px;background:#111;color:#fff;text-align:left;border-radius:6px;padding:.5rem;position:absolute;z-index:1;bottom:125%;left:50%;margin-left:-110px;font-size:.75rem;opacity:0;transition:opacity .3s;}
+    .achievement:hover .tooltiptext{visibility:visible;opacity:1;}
+    /* Programme hebdo */
+    .program-box{background:rgba(255,255,255,.08);border-left:4px solid var(--rouge);padding:1rem;border-radius:var(--radius);font-size:.9rem;white-space:pre-wrap;margin-top:1rem;}
+  </style>
+</head>
+<body>
+<h1 id="mainTitle">Fox RPG</h1>
+<p class="fox-badge">Plateforme : Fox Go Server (19×19)</p>
+
+<!-- SÉLECTEUR LANGUE -->
+<div class="frame" style="display:flex;gap:1rem;align-items:center;">
+  <button onclick="setLang('fr')">Français</button>
+  <button onclick="setLang('en')">English</button>
+  <span id="langFlag" style="margin-left:auto;font-weight:600;">Français</span>
+</div>
+
+<!-- NAVIGATION PRINCIPALE -->
+<div class="frame" style="display:flex;gap:1rem;">
+  <button onclick="showPage('home')"><span id="navHome">Accueil</span></button>
+  <button onclick="showPage('create')"><span id="navCreate">Créer un personnage</span></button>
+  <button onclick="showPage('ranking')"><span id="navRank">Classement</span></button>
+  <button class="admin-only" id="adminPanelBtn" onclick="showPage('adminPanel')" style="display:none;">Gérer les comptes</button>
+</div>
+
+<!-- PAGE 1 : ACCUEIL -->
+<div id="home" class="page active">
+  <div class="frame">
+    <h2 id="homeTitle">Sélectionner un personnage</h2>
+    <div id="charList" style="display:flex;gap:1rem;flex-wrap:wrap;"></div>
+    <div style="text-align:center;margin-top:1rem;">
+      <button onclick="showPage('adminLogin')"><span id="adminBtn">Connexion Admin</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2 : CRÉATION -->
+<div id="create" class="page">
+  <div class="frame">
+    <h2 id="createTitle">Créer un personnage</h2>
+    <label><span id="nameLabel">Nom du personnage</span> <input id="charName" placeholder="Renard"/></label>
+    <label><span id="avatarLabel">Avatar</span>
+      <select id="charAvatar">
+        <option value="🦊">🦊 Renard</option>
+        <option value="🐺">🐺 Loup</option>
+        <option value="🐼">🐼 Panda</option>
+        <option value="🐯">🐯 Tigre</option>
+        <option value="🐲">🐲 Dragon</option>
+      </select>
+    </label>
+    <label>Niveau actuel
+      <select id="charLevel">
+        <option>10k</option><option>9k</option><option>8k</option><option>7k</option><option>6k</option><option>5k</option><option>4k</option><option>3k</option><option>2k</option><option>1k</option>
+        <option>1d</option><option>2d</option><option>3d</option><option>4d</option><option>5d</option><option>6d</option><option>7d</option><option>8d</option><option>9d</option>
+      </select>
+    </label>
+    <label>Objectif 2025
+      <select id="charGoal">
+        <option>1d</option><option>2d</option><option>3d</option><option>4d</option><option>5d</option><option>6d</option><option>7d</option><option>8d</option><option>9d</option>
+      </select>
+    </label>
+    <label><span id="pwdLabel">Mot de passe</span> <input id="charPwd" type="password" placeholder="••••••"/></label>
+    <label><input type="checkbox" id="rememberPwd"> <span id="rememberLabel">Se souvenir du mot de passe</span></label>
+    <label>Couleur de thème <input type="color" id="themeColor" value="#ff003c"></label>
+    <label>Phrase de présentation <textarea id="charQuote" placeholder="Un petit mot..."></textarea></label>
+    <label>Genre
+      <select id="charGender">
+        <option>Non précisé</option>
+        <option>Homme</option>
+        <option>Femme</option>
+        <option>Autre</option>
+      </select>
+    </label>
+    <label>Style de jeu
+      <select id="charStyle">
+        <option>Équilibré</option>
+        <option>Agressif</option>
+        <option>Positional</option>
+        <option>Tacticien</option>
+      </select>
+    </label>
+    <button onclick="createCharacter()"><span id="createBtn">Créer un personnage</span></button>
+  </div>
+</div>
+
+<!-- PAGE 3 : CLASSEMENT -->
+<div id="ranking" class="page">
+  <div class="frame">
+    <h2 id="rankTitle">Classement par XP</h2>
+    <table id="rankTable">
+      <thead><tr><th>#</th><th>Avatar</th><th>Nom</th><th>XP</th><th>Niveau</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PAGE 4 : JEU -->
+<div id="game" class="page">
+  <div class="frame">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <span id="activeEmoji" style="font-size:2rem;cursor:pointer;">🦊</span>
+      <div>
+        <div id="activeName" style="font-weight:700;font-size:1.2rem;"></div>
+        <div id="activeLvl" style="opacity:.7;"></div>
+        <div id="activeQuote" style="font-size:.85rem;opacity:.9;margin-top:.2rem;"></div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div>XP</div>
+        <div id="xpBar" style="width:150px;height:12px;background:rgba(255,255,255,.2);border-radius:6px;overflow:hidden;"><div id="xpFill" style="height:100%;background:var(--rouge);width:0%;"></div></div>
+        <div id="xpText" style="font-size:.8rem;margin-top:.2rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESSION GLOBALE -->
+  <div class="frame">
+    <div id="progressBar"><div id="progressFill">0 %</div></div>
+    <p style="text-align:center;font-size:.9rem;opacity:.8"><span id="dayText">Jour</span> <strong id="dayLabel">0</strong> / 365 – <span id="goalText">Objectif 7d Fox</span></p>
+  </div>
+
+  <!-- WIN-RATE SELECTEUR -->
+  <div class="frame">
+    <div style="display:flex;gap:1rem;align-items:center;">
+      <label><span id="periodLabel">Période</span> :
+        <select id="periodSelect" onchange="refresh()">
+          <option value="global">Global</option>
+          <option value="month">Ce mois</option>
+          <option value="week">Cette semaine</option>
+        </select>
+      </label>
+      <div style="margin-left:auto;"><p><span id="wrLabel">Win-rate affiché</span> : <strong id="winRateDisplay">–</strong></p></div>
+    </div>
+  </div>
+
+  <!-- SUCCÈS -->
+  <div class="frame">
+    <h2 id="achTitle">Succès</h2>
+    <div id="achList" style="display:flex;flex-wrap:wrap;gap:.5rem;"></div>
+  </div>
+
+  <!-- PROGRAMME HEBDO -->
+  <div class="frame">
+    <h2>Programme hebdomadaire</h2>
+    <div id="weeklyProgram" class="program-box"></div>
+  </div>
+
+  <!-- CARNET D'ENTRAINEMENT -->
+  <div class="frame">
+    <div class="fox-header">Fox Go Server – Carnet d’entraînement</div>
+    <form id="logForm">
+      <label><span id="dayLabelText">Jour (manuel)</span> <input id="logDay" min="1" required placeholder="1"/></label>
+      <label><span id="gamesLabel">Parties 19×19</span> <input id="games" min="0" required type="number"/></label>
+      <label><span id="winsLabel">Victoires</span> <input id="wins" min="0" required type="number"/></label>
+      <label><span id="oppLabel">Niveau adverse moyen (Fox)</span>
+        <select id="oppLevel">
+          <option>10k</option><option>9k</option><option>8k</option><option>7k</option><option>6k</option><option>5k</option><option>4k</option><option>3k</option><option>2k</option><option>1k</option>
+          <option>1d</option><option>2d</option><option>3d</option><option>4d</option><option>5d</option><option>6d</option><option>7d</option><option>8d</option><option>9d</option>
+        </select>
+      <label><span id="tsuLabel">Tsumego réussis</span> <input id="tsu" min="0" required type="number"/></label>
+        <label><span id="timeLabel">Minutes d’entraînement</span> <input id="time" min="0" required type="number"/></label>
+      </label>
+      <label><span id="notesLabel">Notes / erreurs clés</span> <textarea id="notes" placeholder="Ex: invasion D4 échouée → revue AI ligne 17"></textarea></label>
+      <button type="submit"><span id="addLabel">Ajouter l’entrée</span></button>
+    </form>
+    <div class="logbook" id="logbook"></div>
+    <div id="histAjout" class="hist-line"></div>
+    <div style="text-align:center;margin-top:1.5rem">
+      <button onclick="resetData()" style="background:#666;box-shadow:none;"><span id="resetLabel">Réinitialiser toutes les données</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 5 : LOGIN ADMIN -->
+<div id="adminLogin" class="page">
+  <div class="frame">
+    <h2>Connexion Admin</h2>
+    <label>Nom : <input id="adminName" value="Admin"/></label>
+    <label>Mot de passe : <input id="adminPwd" type="password" placeholder="••••••"/></label>
+    <button onclick="loginAdmin()">Connexion</button>
+  </div>
+</div>
+
+<!-- PAGE 6 : PANEL ADMIN -->
+<div id="adminPanel" class="page">
+  <div class="frame">
+    <h2>Panel Admin – Gérer les comptes</h2>
+    <table id="adminTable">
+      <thead><tr><th>Avatar</th><th>Nom</th><th>XP</th><th>Niveau</th><th>Action</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div style="text-align:center;margin-top:1rem;">
+      <button onclick="showPage('game')">Retour</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 7 : PROFIL JOUEUR -->
+<div id="profile" class="page">
+  <div class="frame">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <span id="profileEmoji" style="font-size:2rem;"></span>
+      <div>
+        <div id="profileName" style="font-weight:700;font-size:1.2rem;"></div>
+        <div id="profileLvl" style="opacity:.7;"></div>
+        <div id="profileQuote" style="font-size:.85rem;opacity:.9;margin-top:.2rem;"></div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div>XP</div>
+        <div id="profileXpBar" style="width:150px;height:12px;background:rgba(255,255,255,.2);border-radius:6px;overflow:hidden;"><div id="profileXpFill" style="height:100%;background:var(--rouge);width:0%;"></div></div>
+        <div id="profileXpText" style="font-size:.8rem;margin-top:.2rem;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="frame">
+    <h2>Succès débloqués</h2>
+    <div id="profileAch"></div>
+  </div>
+  <div class="frame" style="text-align:center;">
+    <button onclick="showPage('ranking')">Retour</button>
+  </div>
+</div>
+
+<script>
+/* ========== TRADUCTIONS ========== */
+const trad={
+  fr:{
+    foxBadge:"Plateforme : Fox Go Server (19×19)",
+    navHome:"Accueil",navCreate:"Créer un personnage",navRank:"Classement",adminBtn:"Connexion Admin",
+    homeTitle:"Sélectionner un personnage",
+    createTitle:"Créer un personnage",
+    nameLabel:"Nom du personnage",avatarLabel:"Avatar",createBtn:"Créer un personnage",pwdLabel:"Mot de passe",rememberLabel:"Se souvenir du mot de passe",
+    rankTitle:"Classement par XP",
+    activeLvl:"Niveau actuel :",
+    achTitle:"Succès",
+    dayText:"Jour",goalText:"Objectif 7d Fox",
+    periodLabel:"Période",wrLabel:"Win-rate affiché",
+    dayLabelText:"Jour (manuel)",gamesLabel:"Parties 19×19",winsLabel:"Victoires",timeLabel:"Minutes d’entraînement",tsuLabel:"Tsumego réussis",oppLabel:"Niveau adverse moyen (Fox)",notesLabel:"Notes / erreurs clés",addLabel:"Ajouter l’entrée",resetLabel:"Réinitialiser toutes les données"
+  },
+  en:{
+    foxBadge:"Platform : Fox Go Server (19×19)",
+    navHome:"Home",navCreate:"Create",navRank:"Ranking",adminBtn:"Admin Login",
+    homeTitle:"Select a character",
+    createTitle:"Create a character",
+    nameLabel:"Character name",avatarLabel:"Avatar",createBtn:"Create",pwdLabel:"Password",rememberLabel:"Remember password",
+    rankTitle:"Ranking by XP",
+    activeLvl:"Current level :",
+    achTitle:"Achievements",
+    dayText:"Day",goalText:"Goal 7d Fox",
+    periodLabel:"Period",wrLabel:"Displayed win-rate",
+    dayLabelText:"Day (manual)",gamesLabel:"Games 19×19",winsLabel:"Wins",timeLabel:"Training minutes",tsuLabel:"Tsumego solved",oppLabel:"Average opponent level (Fox)",notesLabel:"Notes / key mistakes",addLabel:"Add entry",resetLabel:"Reset all data"
+  }
+};
+let lang='fr';
+
+/* ========== NAVIGATION ========== */
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  if(name==='ranking')renderRanking();
+  if(name==='adminPanel')renderAdminPanel();
+  if(name==='game'){renderWeeklyProgram();renderAchievements();}
+}
+
+/* ========== LANGUE ========== */
+function setLang(l){
+  lang=l;
+  document.getElementById('langFlag').textContent=l==='fr'?'Français':'English';
+  Object.keys(trad[lang]).forEach(k=>{
+    const el=document.getElementById(k);
+    if(el)el.textContent=trad[lang][k];
+  });
+  if(activeChar){refresh();renderLog();renderAchievements();}
+}
+
+/* ========== PERSONNAGES ========== */
+let characters=[];
+let activeChar=null;
+let isAdmin=false;
+
+function loadChars(){
+  // Première lecture
+  sb.from('characters')
+    .select('*')
+    .order('created_at', {ascending:false})
+    .then(({data, error})=>{
+        if(error){ console.error(error); return; }
+        characters = data;
+        renderCharList();
+    });
+
+  // Temps réel
+  sb.channel('public:characters')
+    .on('postgres_changes', {event:'*', schema:'public', table:'characters'}, payload=>{
+        loadChars();
+    })
+    .subscribe();
+}
+
+async function createCharacter(){
+  const name = document.getElementById('charName').value.trim();
+  const pwd  = document.getElementById('charPwd').value.trim();
+  if(!name||!pwd){ alert('Nom et mot de passe requis'); return; }
+
+  const { data, error } = await sb.from('characters').insert([{
+        name,
+        pwd: bcrypt.hashSync(pwd, 10),
+        avatar: document.getElementById('charAvatar').value,
+        color:  document.getElementById('themeColor').value,
+        quote:  document.getElementById('charQuote').value.trim(),
+        gender: document.getElementById('charGender').value,
+        style:  document.getElementById('charStyle').value,
+        goal:   document.getElementById('charGoal').value,
+        level:  document.getElementById('charLevel').value,
+        xp: 0,
+        achievements: []
+  }]).select();
+
+  if(error){ alert('Erreur création : '+error.message); return; }
+
+  activeChar = data[0];
+  showPage('game');
+  updateActiveDisplay();
+  refresh(); renderLog(); renderAchievements();
+async function selectChar(idx){
+  const c = characters[idx];
+  const pwdSaisi = prompt('Mot de passe pour '+c.name+' :');
+  if(!bcrypt.compareSync(pwdSaisi, c.pwd)){
+     alert('Mot de passe incorrect'); return;
+  }
+  activeChar = c;
+  showPage('game');
+  updateActiveDisplay();
+  refresh(); renderLog(); renderAchievements();
+}
+}
+function updateActiveDisplay(){
+  if(!activeChar)return;
+  document.getElementById('goalText').textContent = (lang==='fr'?'Objectif ':'Goal ')+activeChar.goal;
+  document.getElementById('activeEmoji').textContent=activeChar.avatar;
+  document.getElementById('activeName').textContent=activeChar.name;
+  document.getElementById('activeLvl').textContent=(lang==='fr'?'Niveau ':'Level ')+activeChar.level;
+  document.getElementById('activeQuote').textContent=activeChar.quote||'';
+  document.documentElement.style.setProperty('--rouge',activeChar.color||'#ff003c');
+  const needed=getXpNeeded(activeChar.level);
+  const xpPct=Math.min(100,(activeChar.xp/needed)*100);
+  document.getElementById('xpFill').style.width=xpPct+'%';
+  document.getElementById('xpText').textContent=`${activeChar.xp} / ${needed} XP`;
+}
+
+function getXpNeeded(lvl){
+  return lvl*100;
+}
+
+function renderCharList(){
+  const div=document.getElementById('charList');
+  div.innerHTML='';
+  characters.forEach((c,i)=>{
+    const b=document.createElement('button');
+    b.innerHTML=`${c.avatar} ${c.name}`;
+    b.onclick=()=>selectChar(i);
+    b.style.margin='.25rem';
+    div.appendChild(b);
+  });
+}
+
+/* ========== ADMIN LOGIN ========== */
+function loginAdmin(){
+  const name=document.getElementById('adminName').value.trim();
+  const pwd=document.getElementById('adminPwd').value.trim();
+  if(name==="Admin" && pwd==="Cuicui1082910"){
+    isAdmin=true;
+    let admin=characters.find(c=>c.name==="Admin");
+    if(!admin){
+      admin={id:Date.now(),name:"Admin",avatar:"👑",pwd:"Cuicui1082910",xp:340,level:2,day:0,achievements:Array.from({length:5},(_,i)=>i),color:'#ff003c',quote:'I am the Admin.',gender:'Autre',style:'Équilibré',goal:'8d',level:'4d'};
+      characters.push(admin);
+      saveChars();
+    }
+    document.querySelectorAll('.admin-only').forEach(el=>el.style.display='inline-block');
+    selectChar(characters.findIndex(c=>c.name==="Admin"));
+    showPage('game');
+  }else{
+    alert("Identifiants admin incorrects.");
+  }
+}
+
+/* ========== PANEL ADMIN – SUPPRESSION ========== */
+function renderAdminPanel(){
+  const tbody=document.querySelector('#adminTable tbody');
+  tbody.innerHTML='';
+  characters.forEach((c,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${c.avatar}</td><td>${c.name}</td><td>${c.xp}</td><td>${c.level}</td><td><button onclick="deleteAccount(${idx})">Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function deleteAccount(idx){
+  if(!isAdmin){alert("Admin uniquement.");return;}
+  if(!confirm(`Supprimer ${characters[idx].name} ?`))return;
+  const id=characters[idx].id;
+  localStorage.removeItem('fox7d-'+id);
+  localStorage.removeItem('fox7d-pwd-'+id);
+  characters.splice(idx,1);
+  saveChars();
+  renderAdminPanel();
+  showPage('home');renderCharList();
+}
+
+
+/* ========== Visite de profile ========== */
+function showProfile(idx){
+  const c=characters[idx];
+  document.getElementById('profileEmoji').textContent=c.avatar;
+  document.getElementById('profileName').textContent=c.name;
+  document.getElementById('profileLvl').textContent=(lang==='fr'?'Niveau ':'Level ')+c.level;
+  document.getElementById('profileQuote').textContent=c.quote||'';
+  const needed=getXpNeeded(c.level);
+  const xpPct=Math.min(100,(c.xp/needed)*100);
+  document.getElementById('profileXpFill').style.width=xpPct+'%';
+  document.getElementById('profileXpText').textContent=`${c.xp} / ${needed} XP`;
+  renderProfileAchievements(c);
+  showPage('profile');
+}
+
+/* ========== CARNET – CORRIGÉ + HISTORIQUE ========== */
+function populateDaySelect(){
+  const input=document.getElementById('logDay');
+  input.value=activeChar?activeChar.day+1:1;
+}
+const form=document.getElementById('logForm');
+form.addEventListener('submit',e=>{
+  e.preventDefault();
+  if(!activeChar){alert(lang==='fr'?'Sélectionne un personnage':'Choose a character');return;}
+  const day=parseInt(document.getElementById('logDay').value);
+  const entry={
+    date:new Date().toLocaleString('fr'),
+    games:+document.getElementById('games').value,
+    wins:+document.getElementById('wins').value,
+    time:+document.getElementById('time').value,
+    tsu:+document.getElementById('tsu').value,
+    level:document.getElementById('oppLevel').value,
+    notes:document.getElementById('notes').value
+  };
+  const charData=getCharData();
+  charData[day]=entry;
+  saveCharData(charData);
+  // XP & level up
+  activeChar.xp+=entry.games*2+entry.wins*5+entry.tsu*1;
+  const needed=getXpNeeded(activeChar.level);
+  if(activeChar.xp>=needed){
+    activeChar.xp-=needed;
+    levelUp();
+  }
+  activeChar.day=Math.max(activeChar.day,day);
+  saveChars();updateActiveDisplay();checkAchievements();
+  form.reset();refresh();renderLog();populateDaySelect();
+  // Historique
+  const hist=document.getElementById('histAjout');
+  hist.innerHTML=`Dernière entrée : Jour ${day} – ${entry.games} parties – ${entry.wins} victoires – ${entry.time} min – ${entry.tsu} tsumego`;
+});
+function resetData(){
+  if(!confirm(lang==='fr'?'Supprimer TOUTES les données (progression + carnet) ? Cette action est irréversible.':'Delete ALL data (progression + logbook) ? This action is irreversible.'))return;
+  if(!activeChar)return;
+  localStorage.removeItem('fox7d-'+activeChar.id);
+  activeChar.day=0;activeChar.xp=0;activeChar.level=1;activeChar.achievements=[];
+  saveChars();updateActiveDisplay();refresh();renderLog();renderAchievements();populateDaySelect();
+  document.getElementById('histAjout').innerHTML='';
+}
+
+/* ========== CLASSEMENT ========== */
+function renderRanking(){
+  const tbody=document.querySelector('#rankTable tbody');
+  tbody.innerHTML='';
+  const sorted=[...characters].sort((a,b)=>b.xp-a.xp);
+  sorted.forEach((c,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${c.avatar}</td><td>${c.name}</td><td>${c.xp}</td><td>${c.level}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ========== DONNÉES PAR PERSO ========== */
+
+function saveCharData(data){
+  if(!activeChar)return;
+  localStorage.setItem('fox7d-'+activeChar.id,JSON.stringify(data));
+}
+function refresh(){
+  if(!activeChar)return;
+  const data=getCharData();
+  const day=Object.keys(data).length;
+  document.getElementById('dayLabel').textContent=day;
+  document.getElementById('winRateDisplay').textContent=calcWinRate(document.getElementById('periodSelect').value);
+  // progress bar
+  const bar=document.getElementById('progressFill');
+  bar.style.width=Math.round(day/365*100)+'%';
+  bar.textContent=Math.round(day/365*100)+' %';
+  checkAchievements();
+}
+function calcWinRate(period){
+  if(!activeChar)return'–';
+  const data=getCharData();
+  const now=new Date();
+  let total=0,wins=0;
+  Object.values(data).forEach(o=>{
+    const d=new Date(o.date);
+    if(period==='month' && d.getMonth()!==now.getMonth())return;
+    if(period==='week' && (now-d)/864e5>7)return;
+    total+=o.games;wins+=o.wins;
+  });
+  return total?(wins/total*100).toFixed(1)+' %':'–';
+}
+function checkAchievements(){
+  if(!activeChar)return;
+  const data=getCharData();
+  const days=Object.keys(data).length;
+  const totalTsumego=Object.values(data).reduce((s,o)=>s+o.tsu,0);
+  const totalWins=Object.values(data).reduce((s,o)=>s+o.wins,0);
+  const totalGames=Object.values(data).reduce((s,o)=>s+o.games,0);
+
+  if(days>=7 && !activeChar.achievements.includes(2))unlockAchievement(2);
+  if(totalTsumego>=100 && !activeChar.achievements.includes(1))unlockAchievement(1);
+  if(totalWins>=10 && !activeChar.achievements.includes(0))unlockAchievement(0);
+  if(activeChar.level>=3 && !activeChar.achievements.includes(3))unlockAchievement(3);
+}
+function unlockAchievement(id){
+  if(activeChar.achievements.includes(id))return;
+  activeChar.achievements.push(id);
+  playSound('success');
+  showConfetti();
+  alert("🏆 Succès débloqué : " + all[id].name);
+  saveChars();renderAchievements();
+}
+function levelUp(){
+  activeChar.level++;
+  playSound('levelup');
+  showConfetti();
+  document.getElementById('activeEmoji').animate(
+    [{transform:'scale(1)'},{transform:'scale(1.5)'},{transform:'scale(1)'}],
+    {duration:600,iterations:1}
+  );
+  alert(`🎉 ${lang==='fr'?'Niveau':'Level'} ${activeChar.level} !`);
+}
+function playSound(type){
+  const audio=new Audio();
+  audio.src=type==='levelup'?'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE': 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE';
+  audio.play();
+}
+function showConfetti(){
+  // simple visuel
+  const emos=['🎉','✨','🎊','🥳'];
+  for(let i=0;i<20;i++){
+    const span=document.createElement('span');
+    span.textContent=emos[Math.floor(Math.random()*emos.length)];
+    span.style.position='fixed';
+    span.style.left=Math.random()*100+'%';
+    span.style.top='-2rem';
+    span.style.fontSize='1.5rem';
+    span.style.pointerEvents='none';
+    span.style.zIndex=9999;
+    document.body.appendChild(span);
+    span.animate(
+      [{transform:'translateY(0)',opacity:1},{transform:'translateY(120vh)',opacity:0}],
+      {duration:1500,fill:'forwards'}
+    ).onfinish=()=>span.remove();
+  }
+}
+function renderLog(){
+  const data=getCharData();
+  const div=document.getElementById('logbook');
+  div.innerHTML='';
+  Object.keys(data).sort((a,b)=>b-a).forEach(d=>{
+    const e=data[d];
+    const entry=document.createElement('div');entry.className='log-entry';
+    entry.innerHTML=`<header><span>Jour ${d}</span><span>${e.date}</span></header><p>${e.games} parties – ${e.wins} victoires – ${e.time} min – ${e.tsu} tsumego – niveau ${e.level}</p><p>${e.notes}</p>`;
+    div.appendChild(entry);
+  });
+}
+const all=[
+  {name:"🔥 Serial Winner",desc:"Gagne 10 parties d'affilée"},
+  {name:"🧠 Tsumego Master",desc:"Résous 100 tsumego"},
+  {name:"⏰ Régulier",desc:"Entraînement 7 jours de suite"},
+  {name:"📈 Progression",desc:"Passe un niveau"},
+  {name:"🎯 Objectif atteint",desc:"Atteins ton objectif 2025"}
+];
+function renderAchievements(){
+  const div=document.getElementById('achList');
+  div.innerHTML='';
+  if(!activeChar)return;
+  const unlocked=activeChar.achievements||[];
+  all.forEach((a,i)=>{
+    const sp=document.createElement('span');
+    sp.className='achievement'+(unlocked.includes(i)?' unlocked':'');
+    sp.innerHTML=`${a.name}<span class="tooltiptext">${a.desc}</span>`;
+    div.appendChild(sp);
+  });
+}
+function renderWeeklyProgram(){
+  const div=document.getElementById('weeklyProgram');
+  if(!activeChar){div.innerHTML='';return;}
+  const lvl=activeChar.level||'10k';
+  const prog=getTrainingProgram(lvl);
+  div.textContent=prog;
+}
+function getTrainingProgram(level){
+  const programs={
+    "10k-5k": `Lundi – 120 min
+  • Fuseki – 20 min (joseki corner 3-3 + 4-4)
+  • Tsumego – 20 min (10 faciles)
+  • Partie lente – 40 min
+  • Revue AI – 30 min (erreurs majeures)
+  • Yose – 10 min (5 problèmes)
+Mardi – 135 min
+  • Chuban – 25 min (étude de reduction/extension)
+  • Tsumego – 20 min (12 faciles)
+  • 2 parties rapides – 30 min
+  • Revue AI – 30 min
+  • Yose – 10 min
+Mercredi – 90 min (récupération active)
+  • Lecture de partie pro – 30 min
+  • Tsumego – 20 min
+  • Partie rapide – 25 min
+  • Mini-revue – 15 min
+Jeudi – 150 min
+  • Fuseki – 30 min (2 fuseki complets)
+  • Tsumego – 25 min (15 faciles)
+  • Partie sérieuse – 45 min
+  • Revue AI – 35 min
+  • Yose – 15 min
+Vendredi – 120 min
+  • Chuban – 25 min
+  • Tsumego – 20 min
+  • Partie lente – 40 min
+  • Revue AI – 25 min
+  • Yose – 10 min
+Samedi – 165 min
+  • Fuseki – 30 min
+  • Tsumego – 30 min (20 faciles)
+  • 2 parties + revue – 70 min
+  • Yose – 15 min
+  • Récap hebdo – 20 min
+Dimanche – 75 min
+  • Lecture de partie pro – 30 min
+  • Tsumego – 15 min
+  • Partie fun – 30 min`,
+    "5k-1k": `Lundi – 150 min
+  • Fuseki – 30 min (joseki + direction des coups)
+  • Tsumego – 25 min (15 moyens)
+  • Partie sérieuse – 45 min
+  • Revue AI – 35 min
+  • Yose – 15 min (8 problèmes)
+Mardi – 165 min
+  • Chuban – 30 min (reductions, invasions)
+  • Tsumego – 25 min (18 moyens)
+  • 2 parties rapides – 35 min
+  • Revue AI – 35 min
+  • Yose – 20 min
+Mercredi – 105 min (récupération active)
+  • Lecture de partie pro – 35 min
+  • Tsumego – 25 min
+  • Partie rapide + mini-revue – 45 min
+Jeudi – 165 min
+  • Fuseki – 35 min (3 fuseki)
+  • Tsumego – 30 min (20 moyens)
+  • Partie lente – 50 min
+  • Revue AI – 40 min
+  • Yose – 20 min
+Vendredi – 135 min
+  • Chuban – 30 min
+  • Tsumego – 25 min
+  • Partie sérieuse – 45 min
+  • Revue AI – 25 min
+  • Yose – 10 min
+Samedi – 180 min
+  • Fuseki – 35 min
+  • Tsumego – 35 min (25 moyens)
+  • 2 parties + revue – 80 min
+  • Yose – 20 min
+  • Récap hebdo – 10 min
+Dimanche – 90 min
+  • Lecture de partie pro – 40 min
+  • Tsumego – 20 min
+  • Partie fun – 30 min`,
+    "1d-5d": `Lundi – 180 min
+  • Fuseki – 40 min (3 fuseki + direction)
+  • Tsumego – 30 min (20 durs)
+  • Partie sérieuse – 60 min
+  • Revue AI – 40 min (3 phases)
+  • Yose – 10 min (10 problèmes)
+Mardi – 195 min
+  • Chuban – 40 min (invasions, réductions)
+  • Tsumego – 30 min (22 durs)
+  • 2 parties rapides – 45 min
+  • Revue AI – 40 min
+  • Yose – 20 min
+Mercredi – 135 min (récupération active)
+  • Lecture de partie pro – 45 min
+  • Tsumego – 30 min
+  • Partie rapide + mini-revue – 60 min
+Jeudi – 195 min
+  • Fuseki – 45 min (4 fuseki)
+  • Tsumego – 35 min (25 durs)
+  • Partie lente – 60 min
+  • Revue AI – 45 min
+  • Yose – 10 min
+Vendredi – 165 min
+  • Chuban – 40 min
+  • Tsumego – 30 min
+  • Partie sérieuse – 60 min
+  • Revue AI – 25 min
+  • Yose – 10 min
+Samedi – 210 min
+  • Fuseki – 45 min
+  • Tsumego – 40 min (30 durs)
+  • 2 parties + revue – 90 min
+  • Yose – 20 min
+  • Récap hebdo – 15 min
+Dimanche – 105 min
+  • Lecture de partie pro – 50 min
+  • Tsumego – 25 min
+  • Partie fun – 30 min`,
+    "5d-9d": `Lundi – 210 min
+  • Fuseki – 50 min (4 fuseki + variantes)
+  • Tsumego – 40 min (30 pro)
+  • Partie sérieuse – 70 min
+  • Revue AI – 45 min (3 phases)
+  • Yose – 5 min (5 problèmes)
+Mardi – 225 min
+  • Chuban – 50 min (invasions profondes)
+  • Tsumego – 40 min (32 pro)
+  • 2 parties rapides – 50 min
+  • Revue AI – 45 min
+  • Yose – 10 min
+Mercredi – 150 min (récupération active)
+  • Lecture de partie pro – 60 min
+  • Tsumego – 30 min
+  • Partie rapide + mini-revue – 60 min
+Jeudi – 225 min
+  • Fuseki – 55 min (5 fuseki)
+  • Tsumego – 45 min (35 pro)
+  • Partie lente – 70 min
+  • Revue AI – 50 min
+  • Yose – 5 min
+Vendredi – 180 min
+  • Chuban – 50 min
+  • Tsumego – 40 min
+  • Partie sérieuse – 70 min
+  • Revue AI – 20 min
+  • Yose – 0 min
+Samedi – 240 min
+  • Fuseki – 55 min
+  • Tsumego – 50 min (40 pro)
+  • 2 parties + revue – 100 min
+  • Yose – 10 min
+  • Récap hebdo – 25 min
+Dimanche – 120 min
+  • Lecture de partie pro – 60 min
+  • Tsumego – 30 min
+  • Partie fun – 30 min`
+  };
+  const key=level.includes("k")?(parseInt(level)>=5?"10k-5k":"5k-1k"):(parseInt(level)>=5?"5d-9d":"1d-5d");
+  return programs[key];
+}
+
+/* ========== INIT ========== */
+loadChars();setLang('fr');
+let foxClicks=0;
+document.getElementById('activeEmoji').onclick=()=>{
+  foxClicks++;
+  if(foxClicks===7){alert("🦊 : Tu es un vrai renard ! Continue à t'entraîner !");foxClicks=0;}
+};
+document.getElementById('mainTitle').ondblclick=()=>{
+  document.body.style.filter='invert(1)';
+  setTimeout(()=>document.body.style.filter='none',1500);
+};
+document.getElementById('notes').addEventListener('input',e=>{
+  if(e.target.value.toLowerCase().includes('fox')){
+    const span=document.createElement('span');
+    span.textContent='🦊';
+    span.style.position='absolute';
+    span.style.fontSize='2rem';
+    span.style.pointerEvents='none';
+    span.style.animation='fadeOut 2s forwards';
+    document.body.appendChild(span);
+    setTimeout(()=>span.remove(),2000);
+  }
+});
+</script>
+</body>
+</html>
