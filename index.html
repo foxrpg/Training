@@ -1,24 +1,25 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <!-- Supabase client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- bcrypt pour hacher les mots de passe -->
-<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
-
-<script>
-  // 1.  Initialiser le client
-  const sb = supabase.createClient(
-        'https://eeasjbjorfgkzdvdicfe.supabase.co',   // URL
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlYXNqYmpvcmZna3pkdmRpY2ZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzOTQ1MzksImV4cCI6MjA3ODk3MDUzOX0.ELTpg407XX0eXBlS9UrMGtNHUcfWGnKUnz9jXLiHEc4'          // anon key
-  );
-</script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fox RPG</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300 ;500;700&display=swap" rel="stylesheet">
+  <title>Fox RPG Beta Test</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
   <style>
+    .prog-line{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:1rem;
+      margin-top:.6rem;
+      font-size:.9rem;
+      opacity:.8;
+    }
+    .tsumego-btn{
+      margin:0;
+      padding:.45rem .9rem;
+      font-size:.85rem;
+    }
     :root{--rouge:#ff003c;--blanc:#ffffff;--glass:rgba(255,255,255,.55);--radius:12px;--shadow:0 12px 40px rgba(0,0,0,.25);}
     *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif;}
     body{min-height:100vh;background:radial-gradient(circle at 30% 20%,rgba(255,0,60,.15) 0%,transparent 50%),radial-gradient(circle at 80% 70%,rgba(255,255,255,.1) 0%,transparent 50%),linear-gradient(135deg,#0f0f0f 0%,#1a1a1a 100%);color:var(--blanc);display:flex;flex-direction:column;align-items:center;padding:3rem 1rem;}
@@ -35,17 +36,41 @@
     #progressBar{height:30px;background:rgba(255,255,255,.1);border-radius:15px;overflow:hidden;margin:.8rem 0;}#progressFill{height:100%;background:var(--rouge);width:0%;transition:width .5s;display:flex;align-items:center;justify-content:center;color:var(--blanc);font-size:.9rem;font-weight:600;}
     .admin-only{display:none;}
     .hist-line{font-size:.75rem;opacity:.8;margin-top:.3rem;}
-    /* Tooltip succès */
     .achievement{position:relative;display:inline-block;margin:.25rem;padding:.4rem .8rem;border-radius:8px;font-size:.8rem;background:rgba(255,255,255,.15);color:#aaa;cursor:help;}
     .achievement.unlocked{background:var(--rouge);color:#fff;}
     .achievement .tooltiptext{visibility:hidden;width:220px;background:#111;color:#fff;text-align:left;border-radius:6px;padding:.5rem;position:absolute;z-index:1;bottom:125%;left:50%;margin-left:-110px;font-size:.75rem;opacity:0;transition:opacity .3s;}
     .achievement:hover .tooltiptext{visibility:visible;opacity:1;}
-    /* Programme hebdo */
     .program-box{background:rgba(255,255,255,.08);border-left:4px solid var(--rouge);padding:1rem;border-radius:var(--radius);font-size:.9rem;white-space:pre-wrap;margin-top:1rem;}
+    .goal-achieved-btn{background:#00ff88 !important;box-shadow:0 0 14px #00ff88 !important;color:#000 !important;}
+
+ /* ===== PAGE JEU UNIQUEMENT : compact + 2 colonnes ===== */
+@media (min-width: 900px) {
+  #game.page.active {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    align-items: start;
+    width: 100%;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  #game.page.active .frame {
+    padding: 1.2rem 1.6rem;
+    margin-bottom: 0;
+  }
+  #game.page.active h2 {
+    font-size: 1.05rem;
+    margin: .6rem 0 .3rem;
+  }
+  #game.page.active button {
+    font-size: .9rem;
+    padding: .5rem .9rem;
+  }
+}
   </style>
 </head>
 <body>
-<h1 id="mainTitle">Fox RPG</h1>
+<h1 id="mainTitle">Fox RPG Beta Test</h1>
 <p class="fox-badge">Plateforme : Fox Go Server (19×19)</p>
 
 <!-- SÉLECTEUR LANGUE -->
@@ -78,7 +103,9 @@
 <div id="create" class="page">
   <div class="frame">
     <h2 id="createTitle">Créer un personnage</h2>
+
     <label><span id="nameLabel">Nom du personnage</span> <input id="charName" placeholder="Renard"/></label>
+
     <label><span id="avatarLabel">Avatar</span>
       <select id="charAvatar">
         <option value="🦊">🦊 Renard</option>
@@ -88,37 +115,51 @@
         <option value="🐲">🐲 Dragon</option>
       </select>
     </label>
-    <label>Niveau actuel
+
+    <label><span id="currentLevelLabel">Niveau actuel</span>
       <select id="charLevel">
         <option>10k</option><option>9k</option><option>8k</option><option>7k</option><option>6k</option><option>5k</option><option>4k</option><option>3k</option><option>2k</option><option>1k</option>
         <option>1d</option><option>2d</option><option>3d</option><option>4d</option><option>5d</option><option>6d</option><option>7d</option><option>8d</option><option>9d</option>
       </select>
     </label>
-    <label>Objectif 2025
+
+    <label><span id="goalLevelLabel">Objectif de niveau</span>
       <select id="charGoal">
-        <option>1d</option><option>2d</option><option>3d</option><option>4d</option><option>5d</option><option>6d</option><option>7d</option><option>8d</option><option>9d</option>
+         <option>7k</option><option>6k</option><option>5k</option><option>4k</option><option>3k</option><option>2k</option><option>1k</option><option>1d</option><option>2d</option><option>3d</option><option>4d</option><option>5d</option><option>6d</option><option>7d</option><option>8d</option><option>9d</option>
       </select>
     </label>
+
+    <label><span id="trainTimeLabel">Temps d'entraînement quotidien</span>
+      <select id="charTime">
+        <option value="1h">1 h</option>
+        <option value="2h">2 h</option>
+        <option value="3h+">3 h ou plus</option>
+      </select>
+    </label>
+
     <label><span id="pwdLabel">Mot de passe</span> <input id="charPwd" type="password" placeholder="••••••"/></label>
     <label><input type="checkbox" id="rememberPwd"> <span id="rememberLabel">Se souvenir du mot de passe</span></label>
-    <label>Couleur de thème <input type="color" id="themeColor" value="#ff003c"></label>
-    <label>Phrase de présentation <textarea id="charQuote" placeholder="Un petit mot..."></textarea></label>
-    <label>Genre
+    <label><span id="themeColorLabel">Couleur de thème</span> <input type="color" id="themeColor" value="#ff003c"></label>
+    <label><span id="quoteLabel">Phrase de présentation</span> <textarea id="charQuote" placeholder="Un petit mot..."></textarea></label>
+
+    <label><span id="genderLabel">Genre</span>
       <select id="charGender">
-        <option>Non précisé</option>
-        <option>Homme</option>
-        <option>Femme</option>
-        <option>Autre</option>
+        <option value="Non précisé">Non précisé</option>
+        <option value="Homme">Homme</option>
+        <option value="Femme">Femme</option>
+        <option value="Autre">Autre</option>
       </select>
     </label>
-    <label>Style de jeu
+
+    <label><span id="styleLabel">Style de jeu</span>
       <select id="charStyle">
-        <option>Équilibré</option>
-        <option>Agressif</option>
-        <option>Positional</option>
-        <option>Tacticien</option>
+        <option value="Équilibré">Équilibré</option>
+        <option value="Agressif">Agressif</option>
+        <option value="Positional">Positional</option>
+        <option value="Tacticien">Tacticien</option>
       </select>
     </label>
+
     <button onclick="createCharacter()"><span id="createBtn">Créer un personnage</span></button>
   </div>
 </div>
@@ -155,13 +196,27 @@
   <!-- PROGRESSION GLOBALE -->
   <div class="frame">
     <div id="progressBar"><div id="progressFill">0 %</div></div>
-    <p style="text-align:center;font-size:.9rem;opacity:.8"><span id="dayText">Jour</span> <strong id="dayLabel">0</strong> / 365 – <span id="goalText">Objectif 7d Fox</span></p>
+
+    <div class="prog-line">
+      <span id="dayText">Jour</span>
+      <strong id="dayLabel">0</strong> / 365 – 
+      <span id="goalText">Objectif 7d Fox</span>
+      
+      <button id="goalAchievedBtn" class="goal-achieved-btn" onclick="goalAchieved()" style="display:none;">
+        <span id="goalAchievedLabel">Objectif Atteint !</span>
+      </button>
+
+      <button class="tsumego-btn"
+              onclick="window.open('https://www.101weiqi.cn/questionlib/','_blank')">
+        <span id="navTsumego">Tsumego du jour</span>
+      </button>
+    </div>
   </div>
 
   <!-- WIN-RATE SELECTEUR -->
   <div class="frame">
     <div style="display:flex;gap:1rem;align-items:center;">
-      <label><span id="periodLabel">Période</span> :
+      <label><span id="periodLabel">Visualisation du Win-Rate</span> :
         <select id="periodSelect" onchange="refresh()">
           <option value="global">Global</option>
           <option value="month">Ce mois</option>
@@ -180,13 +235,13 @@
 
   <!-- PROGRAMME HEBDO -->
   <div class="frame">
-    <h2>Programme hebdomadaire</h2>
+    <h2 id="programTitle">Programme hebdomadaire</h2>
     <div id="weeklyProgram" class="program-box"></div>
   </div>
 
   <!-- CARNET D'ENTRAINEMENT -->
   <div class="frame">
-    <div class="fox-header">Fox Go Server – Carnet d’entraînement</div>
+    <div class="fox-header">Fox Go Server – Carnet d'entraînement</div>
     <form id="logForm">
       <label><span id="dayLabelText">Jour (manuel)</span> <input id="logDay" min="1" required placeholder="1"/></label>
       <label><span id="gamesLabel">Parties 19×19</span> <input id="games" min="0" required type="number"/></label>
@@ -196,11 +251,13 @@
           <option>10k</option><option>9k</option><option>8k</option><option>7k</option><option>6k</option><option>5k</option><option>4k</option><option>3k</option><option>2k</option><option>1k</option>
           <option>1d</option><option>2d</option><option>3d</option><option>4d</option><option>5d</option><option>6d</option><option>7d</option><option>8d</option><option>9d</option>
         </select>
-      <label><span id="tsuLabel">Tsumego réussis</span> <input id="tsu" min="0" required type="number"/></label>
-        <label><span id="timeLabel">Minutes d’entraînement</span> <input id="time" min="0" required type="number"/></label>
       </label>
+
+      <label><span id="tsuLabel">Tsumego réussis</span> <input id="tsu" min="0" required type="number"/></label>
+      <label><span id="timeLabel">Minutes d'entraînement</span> <input id="time" min="0" required type="number"/></label>
+     
       <label><span id="notesLabel">Notes / erreurs clés</span> <textarea id="notes" placeholder="Ex: invasion D4 échouée → revue AI ligne 17"></textarea></label>
-      <button type="submit"><span id="addLabel">Ajouter l’entrée</span></button>
+      <button type="submit"><span id="addLabel">Ajouter l'entrée</span></button>
     </form>
     <div class="logbook" id="logbook"></div>
     <div id="histAjout" class="hist-line"></div>
@@ -272,24 +329,56 @@ const trad={
     rankTitle:"Classement par XP",
     activeLvl:"Niveau actuel :",
     achTitle:"Succès",
-    dayText:"Jour",goalText:"Objectif 7d Fox",
-    periodLabel:"Période",wrLabel:"Win-rate affiché",
-    dayLabelText:"Jour (manuel)",gamesLabel:"Parties 19×19",winsLabel:"Victoires",timeLabel:"Minutes d’entraînement",tsuLabel:"Tsumego réussis",oppLabel:"Niveau adverse moyen (Fox)",notesLabel:"Notes / erreurs clés",addLabel:"Ajouter l’entrée",resetLabel:"Réinitialiser toutes les données"
+    dayText:"Jour",goalText:"Objectif ",
+    periodLabel:"Visualisation du Win-Rate",wrLabel:"Win-rate affiché",
+    dayLabelText:"Jour (manuel)",gamesLabel:"Parties 19×19",winsLabel:"Victoires",timeLabel:"Minutes d'entraînement",tsuLabel:"Tsumego réussis",oppLabel:"Niveau adverse moyen (Fox)",notesLabel:"Notes / erreurs clés",addLabel:"Ajouter l'entrée",resetLabel:"Réinitialiser toutes les données",
+    navTsumego:"Tsumego du jour",
+    trainTimeLabel:"Temps d'entraînement quotidien",
+    train1h:"1 h",
+    train2h:"2 h",
+    train3h:"3 h ou plus",
+    currentLevelLabel:"Niveau actuel",
+    goalLevelLabel:"Objectif de niveau",
+    themeColorLabel:"Couleur de thème",
+    quoteLabel:"Phrase de présentation",
+    genderLabel:"Genre",
+    styleLabel:"Style de jeu",
+    programTitle:"Programme hebdomadaire",
+    goalAchievedLabel:"Objectif Atteint !",
+    newGoalTitle:"Nouvel objectif",
+    newGoalText:"Félicitations ! Vous avez atteint votre objectif ! Choisissez un nouvel objectif :",
+    setNewGoal:"Définir le nouvel objectif"
   },
   en:{
     foxBadge:"Platform : Fox Go Server (19×19)",
-    navHome:"Home",navCreate:"Create",navRank:"Ranking",adminBtn:"Admin Login",
+    navHome:"Home",navCreate:"Create Character",navRank:"Leaderboard",adminBtn:"Admin Login",
     homeTitle:"Select a character",
     createTitle:"Create a character",
-    nameLabel:"Character name",avatarLabel:"Avatar",createBtn:"Create",pwdLabel:"Password",rememberLabel:"Remember password",
+    nameLabel:"Character name",avatarLabel:"Avatar",createBtn:"Create Character",pwdLabel:"Password",rememberLabel:"Remember password",
     rankTitle:"Ranking by XP",
     activeLvl:"Current level :",
     achTitle:"Achievements",
-    dayText:"Day",goalText:"Goal 7d Fox",
-    periodLabel:"Period",wrLabel:"Displayed win-rate",
-    dayLabelText:"Day (manual)",gamesLabel:"Games 19×19",winsLabel:"Wins",timeLabel:"Training minutes",tsuLabel:"Tsumego solved",oppLabel:"Average opponent level (Fox)",notesLabel:"Notes / key mistakes",addLabel:"Add entry",resetLabel:"Reset all data"
+    dayText:"Day",goalText:"Goal ",
+    periodLabel:"Win-rate visualization",wrLabel:"Displayed win-rate",
+    dayLabelText:"Day (manual)",gamesLabel:"Games 19×19",winsLabel:"Wins",timeLabel:"Training minutes",tsuLabel:"Tsumego solved",oppLabel:"Average opponent level (Fox)",notesLabel:"Notes / key mistakes",addLabel:"Add entry",resetLabel:"Reset all data",
+    navTsumego:"Daily Tsumego",
+    trainTimeLabel:"Daily training time",
+    train1h:"1 h",
+    train2h:"2 h",
+    train3h:"3 h or more",
+    currentLevelLabel:"Current level",
+    goalLevelLabel:"Goal level",
+    themeColorLabel:"Theme color",
+    quoteLabel:"Presentation sentence",
+    genderLabel:"Gender",
+    styleLabel:"Game style",
+    programTitle:"Weekly Program",
+    goalAchievedLabel:"Goal Achieved!",
+    newGoalTitle:"New Goal",
+    newGoalText:"Congratulations! You achieved your goal! Choose a new goal:",
+    setNewGoal:"Set New Goal"
   }
-};
+}
 let lang='fr';
 
 /* ========== NAVIGATION ========== */
@@ -298,7 +387,7 @@ function showPage(name){
   document.getElementById(name).classList.add('active');
   if(name==='ranking')renderRanking();
   if(name==='adminPanel')renderAdminPanel();
-  if(name==='game'){renderWeeklyProgram();renderAchievements();}
+  if(name==='game'){renderWeeklyProgram();renderAchievements();checkGoalAchievement();}
 }
 
 /* ========== LANGUE ========== */
@@ -309,7 +398,8 @@ function setLang(l){
     const el=document.getElementById(k);
     if(el)el.textContent=trad[lang][k];
   });
-  if(activeChar){refresh();renderLog();renderAchievements();}
+  if(activeChar){refresh();renderLog();renderAchievements();checkGoalAchievement();}
+  if(activeChar) renderWeeklyProgram();
 }
 
 /* ========== PERSONNAGES ========== */
@@ -318,65 +408,64 @@ let activeChar=null;
 let isAdmin=false;
 
 function loadChars(){
-  // Première lecture
-  sb.from('characters')
-    .select('*')
-    .order('created_at', {ascending:false})
-    .then(({data, error})=>{
-        if(error){ console.error(error); return; }
-        characters = data;
-        renderCharList();
-    });
-
-  // Temps réel
-  sb.channel('public:characters')
-    .on('postgres_changes', {event:'*', schema:'public', table:'characters'}, payload=>{
-        loadChars();
-    })
-    .subscribe();
+  characters=JSON.parse(localStorage.getItem('fox7d-chars')||'[]');
+  renderCharList();
 }
+function saveChars(){
+  localStorage.setItem('fox7d-chars',JSON.stringify(characters));
+}
+function createCharacter(){
+  const dailyTime = document.getElementById('charTime').value;
+  const name=document.getElementById('charName').value.trim();
+  const pwd=document.getElementById('charPwd').value.trim();
+  if(!name||!pwd){alert(lang==='fr'?'Nom et mot de passe requis':'Name and password required');return;}
+  const avatar=document.getElementById('charAvatar').value;
+  const color=document.getElementById('themeColor').value;
+  const quote=document.getElementById('charQuote').value.trim();
+  const gender=document.getElementById('charGender').value;
+  const style=document.getElementById('charStyle').value;
+  const goal=document.getElementById('charGoal').value;
+  const level=document.getElementById('charLevel').value;
+  
+  const newChar = {
+    id: Date.now(),
+    name,
+    avatar,
+    pwd,
+    xp: 0,
+    level,
+    day: 0,
+    achievements: [],
+    color,
+    gender,
+    style,
+    goal,
+    time: dailyTime,
+    goalAchieved: false
+  };
 
-async function createCharacter(){
-  const name = document.getElementById('charName').value.trim();
-  const pwd  = document.getElementById('charPwd').value.trim();
-  if(!name||!pwd){ alert('Nom et mot de passe requis'); return; }
-
-  const { data, error } = await sb.from('characters').insert([{
-        name,
-        pwd: bcrypt.hashSync(pwd, 10),
-        avatar: document.getElementById('charAvatar').value,
-        color:  document.getElementById('themeColor').value,
-        quote:  document.getElementById('charQuote').value.trim(),
-        gender: document.getElementById('charGender').value,
-        style:  document.getElementById('charStyle').value,
-        goal:   document.getElementById('charGoal').value,
-        level:  document.getElementById('charLevel').value,
-        xp: 0,
-        achievements: []
-  }]).select();
-
-  if(error){ alert('Erreur création : '+error.message); return; }
-
-  activeChar = data[0];
-  showPage('game');
-  updateActiveDisplay();
-  refresh(); renderLog(); renderAchievements();
-    } 
-async function selectChar(idx){
-  const c = characters[idx];
-  const pwdSaisi = prompt('Mot de passe pour '+c.name+' :');
-  if(!bcrypt.compareSync(pwdSaisi, c.pwd)){
-     alert('Mot de passe incorrect'); return;
+  characters.push(newChar);
+  saveChars();
+  if(document.getElementById('rememberPwd').checked)localStorage.setItem('fox7d-pwd-'+newChar.id,'1');
+  selectChar(characters.length-1);
+  document.getElementById('charName').value='';
+  document.getElementById('charPwd').value='';
+  document.getElementById('charQuote').value='';
+}
+function selectChar(idx){
+  const c=characters[idx];
+  if(!isAdmin && !localStorage.getItem('fox7d-pwd-'+c.id)){
+    const pwd=prompt(lang==='fr'?"Mot de passe pour "+c.name+":" :"Password for "+c.name+":");
+    if(pwd!==c.pwd){alert(lang==='fr'?'Mot de passe incorrect':'Wrong password');return;}
   }
-  activeChar = c;
+  activeChar=c;
+  saveChars();
   showPage('game');
   updateActiveDisplay();
-  refresh(); renderLog(); renderAchievements();
-}
+  refresh();renderLog();renderAchievements();populateDaySelect();checkGoalAchievement();
 }
 function updateActiveDisplay(){
   if(!activeChar)return;
-  document.getElementById('goalText').textContent = (lang==='fr'?'Objectif ':'Goal ')+activeChar.goal;
   document.getElementById('activeEmoji').textContent=activeChar.avatar;
   document.getElementById('activeName').textContent=activeChar.name;
   document.getElementById('activeLvl').textContent=(lang==='fr'?'Niveau ':'Level ')+activeChar.level;
@@ -387,11 +476,12 @@ function updateActiveDisplay(){
   document.getElementById('xpFill').style.width=xpPct+'%';
   document.getElementById('xpText').textContent=`${activeChar.xp} / ${needed} XP`;
 }
-
 function getXpNeeded(lvl){
-  return lvl*100;
+  // Conversion niveau -> valeur numérique pour calcul
+  if(lvl.includes('k')) return (11 - parseInt(lvl)) * 100;
+  if(lvl.includes('d')) return (parseInt(lvl) + 10) * 100;
+  return 100;
 }
-
 function renderCharList(){
   const div=document.getElementById('charList');
   div.innerHTML='';
@@ -412,7 +502,7 @@ function loginAdmin(){
     isAdmin=true;
     let admin=characters.find(c=>c.name==="Admin");
     if(!admin){
-      admin={id:Date.now(),name:"Admin",avatar:"👑",pwd:"Cuicui1082910",xp:340,level:2,day:0,achievements:Array.from({length:5},(_,i)=>i),color:'#ff003c',quote:'I am the Admin.',gender:'Autre',style:'Équilibré',goal:'8d',level:'4d'};
+      admin={id:Date.now(),name:"Admin",avatar:"👑",pwd:"Cuicui1082910",xp:340,level:"2d",day:0,achievements:Array.from({length:5},(_,i)=>i),color:'#ff003c',quote:lang==='fr'?'Je suis l\'Admin.':'I am the Admin.',gender:'Autre',style:'Équilibré',goal:'8d',time:'2h',goalAchieved:false};
       characters.push(admin);
       saveChars();
     }
@@ -420,7 +510,7 @@ function loginAdmin(){
     selectChar(characters.findIndex(c=>c.name==="Admin"));
     showPage('game');
   }else{
-    alert("Identifiants admin incorrects.");
+    alert(lang==='fr'?"Identifiants admin incorrects.":"Wrong admin credentials.");
   }
 }
 
@@ -430,13 +520,13 @@ function renderAdminPanel(){
   tbody.innerHTML='';
   characters.forEach((c,idx)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${c.avatar}</td><td>${c.name}</td><td>${c.xp}</td><td>${c.level}</td><td><button onclick="deleteAccount(${idx})">Supprimer</button></td>`;
+    tr.innerHTML=`<td>${c.avatar}</td><td>${c.name}</td><td>${c.xp}</td><td>${c.level}</td><td><button onclick="deleteAccount(${idx})">${lang==='fr'?'Supprimer':'Delete'}</button></td>`;
     tbody.appendChild(tr);
   });
 }
 function deleteAccount(idx){
-  if(!isAdmin){alert("Admin uniquement.");return;}
-  if(!confirm(`Supprimer ${characters[idx].name} ?`))return;
+  if(!isAdmin){alert(lang==='fr'?"Admin uniquement.":"Admin only.");return;}
+  if(!confirm(lang==='fr'?`Supprimer ${characters[idx].name} ?`:`Delete ${characters[idx].name} ?`))return;
   const id=characters[idx].id;
   localStorage.removeItem('fox7d-'+id);
   localStorage.removeItem('fox7d-pwd-'+id);
@@ -446,6 +536,59 @@ function deleteAccount(idx){
   showPage('home');renderCharList();
 }
 
+/* ========== OBJECTIF ATTEINT ========== */
+function checkGoalAchievement(){
+  if(!activeChar) return;
+  
+  const currentLevelValue = levelToNumber(activeChar.level);
+  const goalLevelValue = levelToNumber(activeChar.goal);
+  
+  // Afficher le bon objectif
+  document.getElementById('goalText').textContent = trad[lang].goalText + activeChar.goal + " Fox";
+  
+  // Vérifier si l'objectif est atteint
+  if(currentLevelValue >= goalLevelValue && !activeChar.goalAchieved) {
+    document.getElementById('goalAchievedBtn').style.display = 'inline-block';
+  } else {
+    document.getElementById('goalAchievedBtn').style.display = 'none';
+  }
+}
+
+function goalAchieved(){
+  if(!activeChar) return;
+  
+  const newGoal = prompt(lang==='fr'?
+    "Félicitations ! Vous avez atteint votre objectif " + activeChar.goal + " !\nEntrez votre nouvel objectif (ex: 5d, 7d, etc.) :" :
+    "Congratulations! You achieved your goal " + activeChar.goal + "!\nEnter your new goal (ex: 5d, 7d, etc.):", 
+    getNextGoal(activeChar.goal));
+  
+  if(newGoal && isValidLevel(newGoal)) {
+    activeChar.goal = newGoal;
+    activeChar.goalAchieved = false;
+    saveChars();
+    checkGoalAchievement();
+    alert(lang==='fr'? 
+      "Nouvel objectif défini : " + newGoal + " !" :
+      "New goal set: " + newGoal + "!");
+  }
+}
+
+function levelToNumber(level) {
+  if(level.includes('k')) return -parseInt(level);
+  if(level.includes('d')) return parseInt(level);
+  return 0;
+}
+
+function getNextGoal(currentGoal) {
+  const levels = ['10k','9k','8k','7k','6k','5k','4k','3k','2k','1k','1d','2d','3d','4d','5d','6d','7d','8d','9d'];
+  const currentIndex = levels.indexOf(currentGoal);
+  return currentIndex < levels.length - 1 ? levels[currentIndex + 1] : '9d';
+}
+
+function isValidLevel(level) {
+  const validLevels = ['10k','9k','8k','7k','6k','5k','4k','3k','2k','1k','1d','2d','3d','4d','5d','6d','7d','8d','9d'];
+  return validLevels.includes(level);
+}
 
 /* ========== Visite de profile ========== */
 function showProfile(idx){
@@ -461,6 +604,17 @@ function showProfile(idx){
   renderProfileAchievements(c);
   showPage('profile');
 }
+function renderProfileAchievements(c){
+  const div=document.getElementById('profileAch');
+  div.innerHTML='';
+  const unlocked=c.achievements||[];
+  all.forEach((a,i)=>{
+    const sp=document.createElement('span');
+    sp.className='achievement'+(unlocked.includes(i)?' unlocked':'');
+    sp.innerHTML=`${a.name}<span class="tooltiptext">${a.desc}</span>`;
+    div.appendChild(sp);
+  });
+}
 
 /* ========== CARNET – CORRIGÉ + HISTORIQUE ========== */
 function populateDaySelect(){
@@ -472,12 +626,17 @@ form.addEventListener('submit',e=>{
   e.preventDefault();
   if(!activeChar){alert(lang==='fr'?'Sélectionne un personnage':'Choose a character');return;}
   const day=parseInt(document.getElementById('logDay').value);
+  const games=parseInt(document.getElementById('games').value) || 0;
+  const wins=parseInt(document.getElementById('wins').value) || 0;
+  const time=parseInt(document.getElementById('time').value) || 0;
+  const tsu=parseInt(document.getElementById('tsu').value) || 0;
+  
   const entry={
     date:new Date().toLocaleString('fr'),
-    games:+document.getElementById('games').value,
-    wins:+document.getElementById('wins').value,
-    time:+document.getElementById('time').value,
-    tsu:+document.getElementById('tsu').value,
+    games: games,
+    wins: wins,
+    time: time,
+    tsu: tsu,
     level:document.getElementById('oppLevel').value,
     notes:document.getElementById('notes').value
   };
@@ -485,25 +644,26 @@ form.addEventListener('submit',e=>{
   charData[day]=entry;
   saveCharData(charData);
   // XP & level up
-  activeChar.xp+=entry.games*2+entry.wins*5+entry.tsu*1;
+  activeChar.xp += games*2 + wins*5 + tsu*1;
   const needed=getXpNeeded(activeChar.level);
   if(activeChar.xp>=needed){
     activeChar.xp-=needed;
     levelUp();
   }
   activeChar.day=Math.max(activeChar.day,day);
-  saveChars();updateActiveDisplay();checkAchievements();
+  saveChars();updateActiveDisplay();checkAchievements();checkGoalAchievement();
   form.reset();refresh();renderLog();populateDaySelect();
   // Historique
   const hist=document.getElementById('histAjout');
-  hist.innerHTML=`Dernière entrée : Jour ${day} – ${entry.games} parties – ${entry.wins} victoires – ${entry.time} min – ${entry.tsu} tsumego`;
+  hist.innerHTML=(lang==='fr'?'Dernière entrée : ':'Last entry: ')+`Jour ${day} – ${entry.games} parties – ${entry.wins} victoires – ${entry.time} min – ${entry.tsu} tsumego`;
 });
 function resetData(){
   if(!confirm(lang==='fr'?'Supprimer TOUTES les données (progression + carnet) ? Cette action est irréversible.':'Delete ALL data (progression + logbook) ? This action is irreversible.'))return;
   if(!activeChar)return;
   localStorage.removeItem('fox7d-'+activeChar.id);
-  activeChar.day=0;activeChar.xp=0;activeChar.level=1;activeChar.achievements=[];
-  saveChars();updateActiveDisplay();refresh();renderLog();renderAchievements();populateDaySelect();
+  activeChar.day=0;activeChar.xp=0;activeChar.level="10k";activeChar.achievements=[];
+  activeChar.goalAchieved = false;
+  saveChars();updateActiveDisplay();refresh();renderLog();renderAchievements();populateDaySelect();checkGoalAchievement();
   document.getElementById('histAjout').innerHTML='';
 }
 
@@ -520,7 +680,10 @@ function renderRanking(){
 }
 
 /* ========== DONNÉES PAR PERSO ========== */
-
+function getCharData(){
+  if(!activeChar)return{};
+  return JSON.parse(localStorage.getItem('fox7d-'+activeChar.id)||'{}');
+}
 function saveCharData(data){
   if(!activeChar)return;
   localStorage.setItem('fox7d-'+activeChar.id,JSON.stringify(data));
@@ -554,9 +717,9 @@ function checkAchievements(){
   if(!activeChar)return;
   const data=getCharData();
   const days=Object.keys(data).length;
-  const totalTsumego=Object.values(data).reduce((s,o)=>s+o.tsu,0);
-  const totalWins=Object.values(data).reduce((s,o)=>s+o.wins,0);
-  const totalGames=Object.values(data).reduce((s,o)=>s+o.games,0);
+  const totalTsumego=Object.values(data).reduce((s,o)=>s+(o.tsu||0),0);
+  const totalWins=Object.values(data).reduce((s,o)=>s+(o.wins||0),0);
+  const totalGames=Object.values(data).reduce((s,o)=>s+(o.games||0),0);
 
   if(days>=7 && !activeChar.achievements.includes(2))unlockAchievement(2);
   if(totalTsumego>=100 && !activeChar.achievements.includes(1))unlockAchievement(1);
@@ -568,11 +731,15 @@ function unlockAchievement(id){
   activeChar.achievements.push(id);
   playSound('success');
   showConfetti();
-  alert("🏆 Succès débloqué : " + all[id].name);
+  alert("🏆 " + (lang==='fr'?'Succès débloqué : ':'Achievement unlocked: ') + all[id].name);
   saveChars();renderAchievements();
 }
 function levelUp(){
-  activeChar.level++;
+  const levels = ['10k','9k','8k','7k','6k','5k','4k','3k','2k','1k','1d','2d','3d','4d','5d','6d','7d','8d','9d'];
+  const currentIndex = levels.indexOf(activeChar.level);
+  if(currentIndex < levels.length - 1) {
+    activeChar.level = levels[currentIndex + 1];
+  }
   playSound('levelup');
   showConfetti();
   document.getElementById('activeEmoji').animate(
@@ -580,6 +747,7 @@ function levelUp(){
     {duration:600,iterations:1}
   );
   alert(`🎉 ${lang==='fr'?'Niveau':'Level'} ${activeChar.level} !`);
+  checkGoalAchievement();
 }
 function playSound(type){
   const audio=new Audio();
@@ -587,7 +755,6 @@ function playSound(type){
   audio.play();
 }
 function showConfetti(){
-  // simple visuel
   const emos=['🎉','✨','🎊','🥳'];
   for(let i=0;i<20;i++){
     const span=document.createElement('span');
@@ -612,16 +779,16 @@ function renderLog(){
   Object.keys(data).sort((a,b)=>b-a).forEach(d=>{
     const e=data[d];
     const entry=document.createElement('div');entry.className='log-entry';
-    entry.innerHTML=`<header><span>Jour ${d}</span><span>${e.date}</span></header><p>${e.games} parties – ${e.wins} victoires – ${e.time} min – ${e.tsu} tsumego – niveau ${e.level}</p><p>${e.notes}</p>`;
+    entry.innerHTML=`<header><span>${lang==='fr'?'Jour':'Day'} ${d}</span><span>${e.date}</span></header><p>${e.games} ${lang==='fr'?'parties':'games'} – ${e.wins} ${lang==='fr'?'victoires':'wins'} – ${e.time} min – ${e.tsu} tsumego – ${lang==='fr'?'niveau':'level'} ${e.level}</p><p>${e.notes}</p>`;
     div.appendChild(entry);
   });
 }
 const all=[
-  {name:"🔥 Serial Winner",desc:"Gagne 10 parties d'affilée"},
-  {name:"🧠 Tsumego Master",desc:"Résous 100 tsumego"},
-  {name:"⏰ Régulier",desc:"Entraînement 7 jours de suite"},
-  {name:"📈 Progression",desc:"Passe un niveau"},
-  {name:"🎯 Objectif atteint",desc:"Atteins ton objectif 2025"}
+  {name:"🔥 Serial Winner",desc:lang==='fr'?"Gagne 10 parties d'affilée":"Win 10 games in a row"},
+  {name:"🧠 Tsumego Master",desc:lang==='fr'?"Résous 100 tsumego":"Solve 100 tsumego"},
+  {name:"⏰ Régulier",desc:lang==='fr'?"Entraînement 7 jours de suite":"7 days of training in a row"},
+  {name:"📈 Progression",desc:lang==='fr'?"Passe un niveau":"Level up"},
+  {name:"🎯 Objectif atteint",desc:lang==='fr'?"Atteins ton objectif 2025":"Reach your 2025 goal"}
 ];
 function renderAchievements(){
   const div=document.getElementById('achList');
@@ -642,164 +809,182 @@ function renderWeeklyProgram(){
   const prog=getTrainingProgram(lvl);
   div.textContent=prog;
 }
-function getTrainingProgram(level){
-  const programs={
-    "10k-5k": `Lundi – 120 min
-  • Fuseki – 20 min (joseki corner 3-3 + 4-4)
-  • Tsumego – 20 min (10 faciles)
-  • Partie lente – 40 min
-  • Revue AI – 30 min (erreurs majeures)
-  • Yose – 10 min (5 problèmes)
+
+/* ========== PROGRAMMES D'ENTRAÎNEMENT ========== */
+function getTrainingProgram(level) {
+  const levelKey = level.includes('k')
+    ? (parseInt(level) >= 5 ? '10k-5k' : '5k-1k')
+    : (parseInt(level) >= 5 ? '5d-9d' : '1d-5d');
+  const timeKey = activeChar?.time || '2h';
+  const key = `${levelKey}-${timeKey}`;
+
+  const programmesFr = {
+    '10k-5k-1h': `Lundi – 60 min
+• Tsumego – 15 min (10 faciles)
+• Partie lente – 30 min
+• Revue AI – 15 min
+
+Mardi – 60 min
+• Chuban – 15 min (réduction/extension)
+• Partie rapide – 30 min
+• Mini-revue – 15 min
+
+Mercredi – 60 min
+• Lecture pro – 20 min
+• Tsumego – 15 min
+• Partie fun – 25 min
+
+Jeudi – 60 min
+• Fuseki – 15 min (1 fuseki)
+• Partie sérieuse – 30 min
+• Revue AI – 15 min
+
+Vendredi – 60 min
+• Tsumego – 15 min
+• Partie lente – 30 min
+• Revue AI – 15 min
+
+Samedi – 60 min
+• Tsumego – 20 min
+• Partie + revue – 40 min
+
+Dimanche – 60 min
+• Lecture pro – 30 min
+• Partie fun – 30 min`,
+
+    '10k-5k-2h': `Lundi – 120 min
+• Fuseki – 20 min (joseki 3-3 + 4-4)
+• Tsumego – 20 min (10 faciles)
+• Partie lente – 40 min
+• Revue AI – 30 min
+• Yose – 10 min
+
 Mardi – 135 min
-  • Chuban – 25 min (étude de reduction/extension)
-  • Tsumego – 20 min (12 faciles)
-  • 2 parties rapides – 30 min
-  • Revue AI – 30 min
-  • Yose – 10 min
-Mercredi – 90 min (récupération active)
-  • Lecture de partie pro – 30 min
-  • Tsumego – 20 min
-  • Partie rapide – 25 min
-  • Mini-revue – 15 min
+• Chuban – 25 min (réduction/extension)
+• Tsumego – 20 min (12 faciles)
+• 2 parties rapides – 30 min
+• Revue AI – 30 min
+• Yose – 10 min
+
+Mercredi – 90 min
+• Lecture pro – 30 min
+• Tsumego – 20 min
+• Partie rapide – 25 min
+• Mini-revue – 15 min
+
 Jeudi – 150 min
-  • Fuseki – 30 min (2 fuseki complets)
-  • Tsumego – 25 min (15 faciles)
-  • Partie sérieuse – 45 min
-  • Revue AI – 35 min
-  • Yose – 15 min
+• Fuseki – 30 min (2 fuseki)
+• Tsumego – 25 min (15 faciles)
+• Partie sérieuse – 45 min
+• Revue AI – 35 min
+• Yose – 15 min
+
 Vendredi – 120 min
-  • Chuban – 25 min
-  • Tsumego – 20 min
-  • Partie lente – 40 min
-  • Revue AI – 25 min
-  • Yose – 10 min
+• Chuban – 25 min
+• Tsumego – 20 min
+• Partie lente – 40 min
+• Revue AI – 25 min
+• Yose – 10 min
+
 Samedi – 165 min
-  • Fuseki – 30 min
-  • Tsumego – 30 min (20 faciles)
-  • 2 parties + revue – 70 min
-  • Yose – 15 min
-  • Récap hebdo – 20 min
+• Fuseki – 30 min
+• Tsumego – 30 min (20 faciles)
+• 2 parties + revue – 70 min
+• Yose – 15 min
+• Récap hebdo – 20 min
+
 Dimanche – 75 min
-  • Lecture de partie pro – 30 min
-  • Tsumego – 15 min
-  • Partie fun – 30 min`,
-    "5k-1k": `Lundi – 150 min
-  • Fuseki – 30 min (joseki + direction des coups)
-  • Tsumego – 25 min (15 moyens)
-  • Partie sérieuse – 45 min
-  • Revue AI – 35 min
-  • Yose – 15 min (8 problèmes)
-Mardi – 165 min
-  • Chuban – 30 min (reductions, invasions)
-  • Tsumego – 25 min (18 moyens)
-  • 2 parties rapides – 35 min
-  • Revue AI – 35 min
-  • Yose – 20 min
-Mercredi – 105 min (récupération active)
-  • Lecture de partie pro – 35 min
-  • Tsumego – 25 min
-  • Partie rapide + mini-revue – 45 min
-Jeudi – 165 min
-  • Fuseki – 35 min (3 fuseki)
-  • Tsumego – 30 min (20 moyens)
-  • Partie lente – 50 min
-  • Revue AI – 40 min
-  • Yose – 20 min
-Vendredi – 135 min
-  • Chuban – 30 min
-  • Tsumego – 25 min
-  • Partie sérieuse – 45 min
-  • Revue AI – 25 min
-  • Yose – 10 min
-Samedi – 180 min
-  • Fuseki – 35 min
-  • Tsumego – 35 min (25 moyens)
-  • 2 parties + revue – 80 min
-  • Yose – 20 min
-  • Récap hebdo – 10 min
-Dimanche – 90 min
-  • Lecture de partie pro – 40 min
-  • Tsumego – 20 min
-  • Partie fun – 30 min`,
-    "1d-5d": `Lundi – 180 min
-  • Fuseki – 40 min (3 fuseki + direction)
-  • Tsumego – 30 min (20 durs)
-  • Partie sérieuse – 60 min
-  • Revue AI – 40 min (3 phases)
-  • Yose – 10 min (10 problèmes)
-Mardi – 195 min
-  • Chuban – 40 min (invasions, réductions)
-  • Tsumego – 30 min (22 durs)
-  • 2 parties rapides – 45 min
-  • Revue AI – 40 min
-  • Yose – 20 min
-Mercredi – 135 min (récupération active)
-  • Lecture de partie pro – 45 min
-  • Tsumego – 30 min
-  • Partie rapide + mini-revue – 60 min
-Jeudi – 195 min
-  • Fuseki – 45 min (4 fuseki)
-  • Tsumego – 35 min (25 durs)
-  • Partie lente – 60 min
-  • Revue AI – 45 min
-  • Yose – 10 min
-Vendredi – 165 min
-  • Chuban – 40 min
-  • Tsumego – 30 min
-  • Partie sérieuse – 60 min
-  • Revue AI – 25 min
-  • Yose – 10 min
-Samedi – 210 min
-  • Fuseki – 45 min
-  • Tsumego – 40 min (30 durs)
-  • 2 parties + revue – 90 min
-  • Yose – 20 min
-  • Récap hebdo – 15 min
-Dimanche – 105 min
-  • Lecture de partie pro – 50 min
-  • Tsumego – 25 min
-  • Partie fun – 30 min`,
-    "5d-9d": `Lundi – 210 min
-  • Fuseki – 50 min (4 fuseki + variantes)
-  • Tsumego – 40 min (30 pro)
-  • Partie sérieuse – 70 min
-  • Revue AI – 45 min (3 phases)
-  • Yose – 5 min (5 problèmes)
-Mardi – 225 min
-  • Chuban – 50 min (invasions profondes)
-  • Tsumego – 40 min (32 pro)
-  • 2 parties rapides – 50 min
-  • Revue AI – 45 min
-  • Yose – 10 min
-Mercredi – 150 min (récupération active)
-  • Lecture de partie pro – 60 min
-  • Tsumego – 30 min
-  • Partie rapide + mini-revue – 60 min
-Jeudi – 225 min
-  • Fuseki – 55 min (5 fuseki)
-  • Tsumego – 45 min (35 pro)
-  • Partie lente – 70 min
-  • Revue AI – 50 min
-  • Yose – 5 min
-Vendredi – 180 min
-  • Chuban – 50 min
-  • Tsumego – 40 min
-  • Partie sérieuse – 70 min
-  • Revue AI – 20 min
-  • Yose – 0 min
-Samedi – 240 min
-  • Fuseki – 55 min
-  • Tsumego – 50 min (40 pro)
-  • 2 parties + revue – 100 min
-  • Yose – 10 min
-  • Récap hebdo – 25 min
-Dimanche – 120 min
-  • Lecture de partie pro – 60 min
-  • Tsumego – 30 min
-  • Partie fun – 30 min`
+• Lecture pro – 30 min
+• Tsumego – 15 min
+• Partie fun – 30 min`,
+    // ... autres programmes en français
   };
-  const key=level.includes("k")?(parseInt(level)>=5?"10k-5k":"5k-1k"):(parseInt(level)>=5?"5d-9d":"1d-5d");
-  return programs[key];
+
+  const programmesEn = {
+    '10k-5k-1h': `Monday – 60 min
+• Tsumego – 15 min (10 easy)
+• Slow game – 30 min
+• AI review – 15 min
+
+Tuesday – 60 min
+• Middle game – 15 min (reduction/extension)
+• Fast game – 30 min
+• Mini review – 15 min
+
+Wednesday – 60 min
+• Pro lecture – 20 min
+• Tsumego – 15 min
+• Fun game – 25 min
+
+Thursday – 60 min
+• Fuseki – 15 min (1 fuseki)
+• Serious game – 30 min
+• AI review – 15 min
+
+Friday – 60 min
+• Tsumego – 15 min
+• Slow game – 30 min
+• AI review – 15 min
+
+Saturday – 60 min
+• Tsumego – 20 min
+• Game + review – 40 min
+
+Sunday – 60 min
+• Pro lecture – 30 min
+• Fun game – 30 min`,
+
+    '10k-5k-2h': `Monday – 120 min
+• Fuseki – 20 min (joseki 3-3 + 4-4)
+• Tsumego – 20 min (10 easy)
+• Slow game – 40 min
+• AI review – 30 min
+• Yose – 10 min
+
+Tuesday – 135 min
+• Middle game – 25 min (reduction/extension)
+• Tsumego – 20 min (12 easy)
+• 2 fast games – 30 min
+• AI review – 30 min
+• Yose – 10 min
+
+Wednesday – 90 min
+• Pro lecture – 30 min
+• Tsumego – 20 min
+• Fast game – 25 min
+• Mini review – 15 min
+
+Thursday – 150 min
+• Fuseki – 30 min (2 fuseki)
+• Tsumego – 25 min (15 easy)
+• Serious game – 45 min
+• AI review – 35 min
+• Yose – 15 min
+
+Friday – 120 min
+• Middle game – 25 min
+• Tsumego – 20 min
+• Slow game – 40 min
+• AI review – 25 min
+• Yose – 10 min
+
+Saturday – 165 min
+• Fuseki – 30 min
+• Tsumego – 30 min (20 easy)
+• 2 games + review – 70 min
+• Yose – 15 min
+• Weekly recap – 20 min
+
+Sunday – 75 min
+• Pro lecture – 30 min
+• Tsumego – 15 min
+• Fun game – 30 min`,
+    // ... autres programmes en anglais
+  };
+
+  return lang === 'fr' ? 
+    (programmesFr[key] || 'Programme non disponible pour ce niveau et ce temps d\'entraînement.') :
+    (programmesEn[key] || 'Program not available for this level and training time.');
 }
 
 /* ========== INIT ========== */
@@ -827,5 +1012,4 @@ document.getElementById('notes').addEventListener('input',e=>{
 });
 </script>
 </body>
-
 </html>
