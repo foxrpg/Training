@@ -6,7 +6,6 @@
   <title>Fox RPG Beta Test</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
   <style>
-    /* [Tous les styles CSS restent identiques] */
     .prog-line{
       display:flex;
       align-items:center;
@@ -311,6 +310,42 @@
       height: 40px;
       border-radius: 8px;
       border: 2px solid white;
+    }
+
+    /* ===== PROGRAMME STYLES ===== */
+    .program-day {
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid var(--rouge);
+    }
+    
+    .program-day.current {
+      background: rgba(255,0,60,0.1);
+      border-color: var(--rouge);
+    }
+    
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    
+    .activity {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+      font-size: 0.9rem;
+    }
+    
+    .activity-icon {
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
     }
 
     /* ===== CHATBOX STYLES ===== */
@@ -865,148 +900,171 @@ let db = null;
 let lang = 'fr';
 let firebaseInitialized = false;
 
-// ========== INITIALISATION FIREBASE ==========
-async function initializeFirebase() {
-  if (firebaseInitialized) return;
-  
-  try {
-    // Charger Firebase de manière synchrone
-    const firebaseAppScript = document.createElement('script');
-    firebaseAppScript.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    
-    const firebaseFirestoreScript = document.createElement('script');
-    firebaseFirestoreScript.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// ========== TRADUCTIONS ==========
+const trad = {
+  fr: {
+    navHome: "Accueil", navLogin: "Connexion", navCreate: "Créer un personnage", navRank: "Classement", navProfile: "👤 Profil",
+    welcomeTitle: "Bienvenue au Fox RPG", welcomeSubtitle: "Rejoins l'aventure ultime pour maîtriser le jeu de Go sur Fox Server. Suis ta progression, dépasse tes limites et deviens un véritable renard du Go !",
+    startBtn: "🎮 Commencer l'Aventure", viewRankingBtn: "🏆 Voir le Classement", foxBadge: "Plateforme : Fox Go Server (19×19)",
+    statsPlayers: "Joueurs Actifs", statsGames: "Parties Jouées", statsAchievements: "Succès Débloqués",
+    feature1Title: "Suivi de Progression", feature1Desc: "Enregistre tes parties, analyse tes performances et suis ton évolution en temps réel",
+    feature2Title: "Objectifs Personnalisés", feature2Desc: "Définis tes objectifs de niveau et reçois des programmes d'entraînement adaptés",
+    feature3Title: "Système de Succès", feature3Desc: "Débloque des succès en progressant et montre tes compétences",
+    feature4Title: "Communauté", feature4Desc: "Discute avec d'autres joueurs et partage tes experiences",
+    loginTitle: "Connexion", loginSubtitle: "Entre tes identifiants pour accéder à ton aventure", usernameLabel: "Nom d'utilisateur",
+    passwordLabel: "Mot de passe", loginBtn: "🎯 Se Connecter", backBtn: "← Retour à l'Accueil", createCharBtn: "➕ Créer un Personnage",
+    createTitle: "Créer un personnage", nameLabel: "Nom du personnage", avatarLabel: "Avatar", currentLevelLabel: "Niveau actuel",
+    goalLevelLabel: "Objectif de niveau", trainTimeLabel: "Temps d'entraînement quotidien", pwdLabel: "Mot de passe",
+    rememberLabel: "Se souvenir du mot de passe", themeColorLabel: "Couleur de thème", quoteLabel: "Phrase de présentation",
+    genderLabel: "Genre", styleLabel: "Style de jeu", createBtn: "Créer un personnage",
+    profileXPLabel: "XP", profileDaysLabel: "Jours", profileAchievementsLabel: "Succès", profileGoalLabel: "Objectif",
+    themeColorLabelProfile: "Couleur du thème", backToGameBtn: "🎮 Retour au Jeu",
+    rankTitle: "Classement par XP", rankAvatar: "Avatar", rankName: "Nom", rankLevel: "Niveau",
+    dayText: "Jour", goalText: "Objectif ", goalAchievedLabel: "Objectif Atteint !", navTsumego: "Tsumego du jour",
+    periodLabel: "Visualisation du Win-Rate", wrLabel: "Win-rate affiché", achTitle: "Succès", programTitle: "Programme hebdomadaire",
+    logbookTitle: "Carnet d'entraînement", dayLabelText: "Jour", gamesLabel: "Parties 19×19", winsLabel: "Victoires",
+    tsuLabel: "Tsumego", timeLabel: "Minutes", oppLabel: "Niveau adverse", notesLabel: "Notes", addLabel: "Ajouter",
+    resetLabel: "Réinitialiser toutes les données", chatTitle: "Chat Global",
+    lastEntry: "Dernière entrée : ", confirmReset: "Supprimer TOUTES les données (progression + carnet) ? Cette action est irréversible.",
+    wrongPassword: "Mot de passe incorrect", namePasswordRequired: "Nom et mot de passe requis",
+    credentialsRequired: "Veuillez entrer un nom d'utilisateur et un mot de passe", wrongCredentials: "Identifiants incorrects",
+    goalCongratulations: "Félicitations ! Vous avez atteint votre objectif {goal} !\nEntrez votre nouvel objectif (ex: 5d, 7d, etc.) :",
+    newGoalSet: "Nouvel objectif défini : {goal} !", achievementUnlocked: "Succès débloqué : ",
+    chatConnect: "Connecte-toi avec un personnage pour chatter !", messageError: "Erreur d'envoi du message"
+  },
+  en: {
+    navHome: "Home", navLogin: "Login", navCreate: "Create Character", navRank: "Leaderboard", navProfile: "👤 Profile",
+    welcomeTitle: "Welcome to Fox RPG", welcomeSubtitle: "Join the ultimate adventure to master the game of Go on Fox Server. Track your progress, push your limits and become a true Go fox!",
+    startBtn: "🎮 Start Adventure", viewRankingBtn: "🏆 View Ranking", foxBadge: "Platform : Fox Go Server (19×19)",
+    statsPlayers: "Active Players", statsGames: "Games Played", statsAchievements: "Achievements Unlocked",
+    feature1Title: "Progress Tracking", feature1Desc: "Record your games, analyze your performance and track your evolution in real time",
+    feature2Title: "Custom Goals", feature2Desc: "Set your level goals and receive adapted training programs",
+    feature3Title: "Achievement System", feature3Desc: "Unlock achievements as you progress and show your skills",
+    feature4Title: "Community", feature4Desc: "Chat with other players and share your experiences",
+    loginTitle: "Login", loginSubtitle: "Enter your credentials to access your adventure", usernameLabel: "Username",
+    passwordLabel: "Password", loginBtn: "🎯 Login", backBtn: "← Back to Home", createCharBtn: "➕ Create Character",
+    createTitle: "Create a character", nameLabel: "Character name", avatarLabel: "Avatar", currentLevelLabel: "Current level",
+    goalLevelLabel: "Goal level", trainTimeLabel: "Daily training time", pwdLabel: "Password",
+    rememberLabel: "Remember password", themeColorLabel: "Theme color", quoteLabel: "Presentation sentence",
+    genderLabel: "Gender", styleLabel: "Game style", createBtn: "Create Character",
+    profileXPLabel: "XP", profileDaysLabel: "Days", profileAchievementsLabel: "Achievements", profileGoalLabel: "Goal",
+    themeColorLabelProfile: "Theme color", backToGameBtn: "🎮 Back to Game",
+    rankTitle: "Ranking by XP", rankAvatar: "Avatar", rankName: "Name", rankLevel: "Level",
+    dayText: "Day", goalText: "Goal ", goalAchievedLabel: "Goal Achieved!", navTsumego: "Daily Tsumego",
+    periodLabel: "Win-rate visualization", wrLabel: "Displayed win-rate", achTitle: "Achievements", programTitle: "Weekly Program",
+    logbookTitle: "Training Logbook", dayLabelText: "Day", gamesLabel: "Games 19×19", winsLabel: "Wins",
+    tsuLabel: "Tsumego", timeLabel: "Minutes", oppLabel: "Opponent level", notesLabel: "Notes", addLabel: "Add",
+    resetLabel: "Reset all data", chatTitle: "Global Chat",
+    lastEntry: "Last entry: ", confirmReset: "Delete ALL data (progression + logbook) ? This action is irreversible.",
+    wrongPassword: "Wrong password", namePasswordRequired: "Name and password required",
+    credentialsRequired: "Please enter username and password", wrongCredentials: "Wrong credentials",
+    goalCongratulations: "Congratulations! You achieved your goal {goal}!\nEnter your new goal (ex: 5d, 7d, etc.):",
+    newGoalSet: "New goal set: {goal}!", achievementUnlocked: "Achievement unlocked: ",
+    chatConnect: "Connect with a character to chat!", messageError: "Message sending error"
+  }
+};
 
-    await new Promise((resolve, reject) => {
-      firebaseAppScript.onload = () => {
-        document.head.appendChild(firebaseFirestoreScript);
-        firebaseFirestoreScript.onload = resolve;
-        firebaseFirestoreScript.onerror = reject;
-      };
-      firebaseAppScript.onerror = reject;
-      document.head.appendChild(firebaseAppScript);
+// ========== FONCTIONS PRINCIPALES ==========
+
+// Navigation entre pages
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  
+  if (name === 'ranking') renderRanking();
+  if (name === 'welcome') updateWelcomeStats();
+  if (name === 'profile' && activeChar) renderProfile();
+  if (name === 'game') { 
+    renderWeeklyProgram(); 
+    renderAchievements(); 
+    checkGoalAchievement();
+    if (activeChar) setupChatListener();
+  }
+}
+
+// Gestion de la langue
+function setLang(l) {
+  lang = l;
+  
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  Object.keys(trad[lang]).forEach(key => {
+    const elements = document.querySelectorAll(`[id="${key}"]`);
+    elements.forEach(el => {
+      el.textContent = trad[lang][key];
     });
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
-      authDomain: "fox-rpg-406d6.firebaseapp.com",
-      projectId: "fox-rpg-406d6",
-      storageBucket: "fox-rpg-406d6.firebasestorage.app",
-      messagingSenderId: "218915576778",
-      appId: "1:218915576778:web:8b03757d20b8451e428d33"
-    };
-
-    // Initialiser Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    
-    console.log("🔥 Firebase connecté !");
-    firebaseInitialized = true;
-    
-  } catch (error) {
-    console.error("❌ Erreur Firebase:", error);
-    // Mode dégradé si Firebase échoue
-    db = {
-      collection: () => ({
-        add: () => Promise.resolve(),
-        get: () => Promise.resolve({ docs: [] })
-      })
-    };
-  }
-}
-
-// ========== FONCTIONS CHAT FIREBASE ==========
-function toggleChat() {
-  const chatbox = document.getElementById('chatbox');
-  chatVisible = !chatVisible;
+  });
   
-  if (chatVisible) {
-    chatbox.classList.add('active');
-    if (activeChar) {
-      setupChatListener();
-    } else {
-      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Connecte-toi avec un personnage pour chatter !</div>';
-    }
-  } else {
-    chatbox.classList.remove('active');
+  if (activeChar) {
+    refresh();
+    renderLog();
+    renderAchievements();
+    checkGoalAchievement();
+    renderProfile();
   }
+  if (activeChar) renderWeeklyProgram();
 }
 
-async function setupChatListener() {
-  if (!firebaseInitialized || !activeChar) return;
+// Page d'accueil - statistiques
+function updateWelcomeStats() {
+  const totalPlayers = characters.length;
+  const totalGames = characters.reduce((sum, char) => {
+    const charData = JSON.parse(localStorage.getItem('fox7d-' + char.id) || '{}');
+    return sum + Object.values(charData).reduce((games, entry) => games + (entry.games || 0), 0);
+  }, 0);
+  const totalAchievements = characters.reduce((sum, char) => sum + (char.achievements ? char.achievements.length : 0), 0);
   
-  try {
-    const q = firebase.firestore().collection("chat").orderBy("timestamp", "asc");
-    
-    q.onSnapshot((snapshot) => {
-      const chatMessages = document.getElementById('chatMessages');
-      chatMessages.innerHTML = '';
-      
-      snapshot.forEach((doc) => {
-        const message = doc.data();
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'chat-message';
-        messageDiv.innerHTML = `
-          <div class="message-header">
-            <span class="message-user">${message.user}</span>
-            <span class="message-time">${new Date(message.timestamp?.toDate()).toLocaleTimeString()}</span>
-          </div>
-          <div>${message.text}</div>
-        `;
-        chatMessages.appendChild(messageDiv);
-      });
-      
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    });
-  } catch (error) {
-    console.error("Erreur chat:", error);
-  }
+  document.getElementById('totalPlayers').textContent = totalPlayers;
+  document.getElementById('totalGames').textContent = totalGames;
+  document.getElementById('totalAchievements').textContent = totalAchievements;
 }
 
-async function sendMessage() {
-  if (!activeChar || !firebaseInitialized) {
-    alert("Connecte-toi avec un personnage pour chatter !");
+// Connexion utilisateur
+function loginUser() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  
+  if (!username || !password) {
+    alert(trad[lang].credentialsRequired);
     return;
   }
   
-  const chatInput = document.getElementById('chatInput');
-  const message = chatInput.value.trim();
+  const character = characters.find(char => 
+    char.name.toLowerCase() === username.toLowerCase() && char.pwd === password
+  );
   
-  if (!message) return;
-  
-  try {
-    await firebase.firestore().collection("chat").add({
-      user: activeChar.name,
-      text: message,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    chatInput.value = '';
-  } catch (error) {
-    console.error("Erreur d'envoi du message", error);
-    alert("Erreur d'envoi du message");
+  if (character) {
+    const charIndex = characters.findIndex(c => c.id === character.id);
+    loginCharacter(charIndex);
+  } else {
+    alert(trad[lang].wrongCredentials);
   }
 }
 
-// ========== INITIALISATION AU CHARGEMENT ==========
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialiser le chat
-  const chatInput = document.getElementById('chatInput');
-  if (chatInput) {
-    chatInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        sendMessage();
+// Charger les personnages
+function loadChars() {
+  const saved = localStorage.getItem('fox7d-chars');
+  if (saved) {
+    characters = JSON.parse(saved);
+    const savedActive = localStorage.getItem('fox7d-active');
+    if (savedActive) {
+      const activeIndex = characters.findIndex(c => c.id === savedActive);
+      if (activeIndex !== -1) {
+        loginCharacter(activeIndex);
       }
-    });
+    }
+    updateWelcomeStats();
   }
-  
-  // Initialiser Firebase au chargement de la page
-  initializeFirebase();
-  
-  // ... le reste de ton code d'initialisation
-});
+}
 
-// Dans ta fonction loginCharacter, ajoute l'initialisation Firebase :
+// Sauvegarder les personnages
+function saveChars() {
+  localStorage.setItem('fox7d-chars', JSON.stringify(characters));
+  updateWelcomeStats();
+}
+
+// Connexion d'un personnage
 function loginCharacter(index) {
   activeChar = characters[index];
   localStorage.setItem('fox7d-active', activeChar.id);
@@ -1021,7 +1079,6 @@ function loginCharacter(index) {
   
   showPage('game');
   
-  // S'assurer que Firebase est initialisé pour le chat
   initializeFirebase();
 }
 
@@ -1035,7 +1092,6 @@ function createCharacter() {
     return;
   }
   
-  // Vérifier si le nom existe déjà
   if (characters.some(char => char.name.toLowerCase() === name.toLowerCase())) {
     alert("Ce nom est déjà utilisé !");
     return;
@@ -1061,7 +1117,6 @@ function createCharacter() {
   characters.push(newChar);
   saveChars();
   
-  // Se connecter automatiquement
   const charIndex = characters.findIndex(c => c.id === newChar.id);
   loginCharacter(charIndex);
   
@@ -1072,18 +1127,15 @@ function createCharacter() {
 function refresh() {
   if (!activeChar) return;
   
-  // Mettre à jour les infos du personnage
   document.getElementById('activeEmoji').textContent = activeChar.avatar;
   document.getElementById('activeName').textContent = activeChar.name;
   document.getElementById('activeLvl').textContent = `Niveau ${activeChar.level}`;
   document.getElementById('activeQuote').textContent = activeChar.quote;
   
-  // Mettre à jour la barre XP
   const xpPercent = Math.min((activeChar.xp / 1000) * 100, 100);
   document.getElementById('xpFill').style.width = xpPercent + '%';
   document.getElementById('xpText').textContent = `${activeChar.xp} / 1000 XP`;
   
-  // Mettre à jour la progression globale
   updateProgress();
 }
 
@@ -1099,7 +1151,6 @@ function updateProgress() {
   document.getElementById('progressFill').textContent = Math.round(progressPercent) + ' %';
   document.getElementById('dayLabel').textContent = days;
   
-  // Mettre à jour le texte d'objectif
   document.getElementById('goalText').textContent = trad[lang].goalText + activeChar.goal + ' Fox';
 }
 
@@ -1131,30 +1182,188 @@ function renderAchievements() {
   });
 }
 
-// Afficher le programme hebdomadaire
+// PROGRAMME D'ENTRAINEMENT PERSONNALISÉ
 function renderWeeklyProgram() {
   if (!activeChar) return;
   
   const programBox = document.getElementById('weeklyProgram');
-  const programs = {
-    fr: `LUNDI : 5 parties rapides + 20 tsumegos
-MARDI : 3 parties longues + revue AI
-MERCREDI : Étude de joseki (30 min)
-JEUDI : 5 parties rapides + 20 tsumegos
-VENDREDI : Parties contre joueurs plus forts
-SAMEDI : Revue de la semaine + 30 tsumegos
-DIMANCHE : Repos ou parties amicales`,
-    en: `MONDAY: 5 fast games + 20 tsumegos
-TUESDAY: 3 long games + AI review
-WEDNESDAY: Joseki study (30 min)
-THURSDAY: 5 fast games + 20 tsumegos
-FRIDAY: Games against stronger players
-SATURDAY: Week review + 30 tsumegos
-SUNDAY: Rest or friendly games`
+  
+  // Récupérer le temps d'entraînement
+  const trainingTime = activeChar.time;
+  const dailyMinutes = getDailyMinutesFromTime(trainingTime);
+  
+  // Générer le programme personnalisé
+  const customProgram = generateCustomProgram(activeChar.level, dailyMinutes);
+  
+  let programHTML = `
+    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong>📊 ${lang === 'fr' ? 'Programme personnalisé pour' : 'Custom program for'} ${activeChar.name}</strong>
+        <div style="font-size: 0.9rem; opacity: 0.8;">
+          ${lang === 'fr' ? 'Niveau' : 'Level'}: ${activeChar.level} → ${activeChar.goal} | ${lang === 'fr' ? 'Temps' : 'Time'}: ${trainingTime}/${lang === 'fr' ? 'jour' : 'day'}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Ajouter chaque jour
+  customProgram.days.forEach((day, index) => {
+    const isToday = index === new Date().getDay() - 1;
+    programHTML += `
+      <div class="program-day ${isToday ? 'current' : ''}">
+        <div class="day-header">
+          <span>${day.name}</span>
+          <span style="font-size: 0.8rem; opacity: 0.7;">${day.totalTime}</span>
+        </div>
+        ${day.activities.map(activity => `
+          <div class="activity">
+            <div class="activity-icon">${activity.icon}</div>
+            <div style="flex: 1;">${activity.description}</div>
+            <div style="font-size: 0.8rem; opacity: 0.7;">${activity.time}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  });
+  
+  // Statistiques hebdomadaires
+  programHTML += `
+    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius); text-align: center;">
+      <div style="margin-bottom: 0.5rem; font-weight: bold;">📈 ${lang === 'fr' ? 'Statistiques Hebdomadaires' : 'Weekly Statistics'}</div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+        <div>
+          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalGames}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Parties' : 'Games'}</div>
+        </div>
+        <div>
+          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalTsumego}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Tsumegos' : 'Tsumegos'}</div>
+        </div>
+        <div>
+          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalTime}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Heures' : 'Hours'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  programBox.innerHTML = programHTML;
+}
+
+function getDailyMinutesFromTime(timeString) {
+  switch(timeString) {
+    case '1h': return 60;
+    case '2h': return 120;
+    case '3h+': return 180;
+    default: return 60;
+  }
+}
+
+function generateCustomProgram(level, dailyMinutes) {
+  const levels = {
+    '10k': { games: 3, tsumego: 15, focus: lang === 'fr' ? 'Bases et formes' : 'Basics and shapes' },
+    '9k': { games: 3, tsumego: 20, focus: lang === 'fr' ? 'Bases et formes' : 'Basics and shapes' },
+    '8k': { games: 4, tsumego: 25, focus: lang === 'fr' ? 'Joseki simples' : 'Simple joseki' },
+    '7k': { games: 4, tsumego: 30, focus: lang === 'fr' ? 'Joseki simples' : 'Simple joseki' },
+    '6k': { games: 5, tsumego: 35, focus: lang === 'fr' ? 'Fuseki' : 'Fuseki' },
+    '5k': { games: 5, tsumego: 40, focus: lang === 'fr' ? 'Fuseki' : 'Fuseki' },
+    '4k': { games: 6, tsumego: 45, focus: lang === 'fr' ? 'Direction du jeu' : 'Direction of play' },
+    '3k': { games: 6, tsumego: 50, focus: lang === 'fr' ? 'Direction du jeu' : 'Direction of play' },
+    '2k': { games: 7, tsumego: 55, focus: lang === 'fr' ? 'Yose' : 'Yose' },
+    '1k': { games: 7, tsumego: 60, focus: lang === 'fr' ? 'Yose' : 'Yose' },
+    '1d': { games: 8, tsumego: 70, focus: lang === 'fr' ? 'Tesuji' : 'Tesuji' },
+    '2d': { games: 8, tsumego: 80, focus: lang === 'fr' ? 'Tesuji' : 'Tesuji' },
+    '3d': { games: 9, tsumego: 90, focus: lang === 'fr' ? 'Stratégie' : 'Strategy' },
+    '4d': { games: 9, tsumego: 100, focus: lang === 'fr' ? 'Stratégie' : 'Strategy' },
+    '5d': { games: 10, tsumego: 110, focus: lang === 'fr' ? 'Analyse pro' : 'Pro analysis' },
+    '6d': { games: 10, tsumego: 120, focus: lang === 'fr' ? 'Analyse pro' : 'Pro analysis' },
+    '7d': { games: 11, tsumego: 130, focus: lang === 'fr' ? 'Perfectionnement' : 'Perfection' },
+    '8d': { games: 11, tsumego: 140, focus: lang === 'fr' ? 'Perfectionnement' : 'Perfection' },
+    '9d': { games: 12, tsumego: 150, focus: lang === 'fr' ? 'Maîtrise' : 'Mastery' }
   };
   
-  programBox.textContent = programs[lang];
+  const config = levels[level] || levels['10k'];
+  
+  // Adapter selon le temps disponible
+  const timeFactor = dailyMinutes / 60; // 1h = facteur 1, 2h = facteur 2, etc.
+  const adjustedGames = Math.round(config.games * timeFactor);
+  const adjustedTsumego = Math.round(config.tsumego * timeFactor);
+  
+  const days = [
+    {
+      name: lang === 'fr' ? 'LUNDI' : 'MONDAY',
+      totalTime: Math.round(dailyMinutes/60) + (lang === 'fr' ? 'h' : 'h'),
+      activities: [
+        { icon: '⚡', description: `${adjustedGames} ${lang === 'fr' ? 'parties rapides' : 'fast games'}`, time: '45min' },
+        { icon: '🧩', description: `${adjustedTsumego} ${lang === 'fr' ? 'tsumegos vie/mort' : 'life/death tsumegos'}`, time: '30min' },
+        { icon: '📚', description: `${lang === 'fr' ? 'Révision:' : 'Review:'} ${config.focus}`, time: '15min' }
+      ]
+    },
+    {
+      name: lang === 'fr' ? 'MARDI' : 'TUESDAY',
+      totalTime: Math.round(dailyMinutes/60) + (lang === 'fr' ? 'h' : 'h'),
+      activities: [
+        { icon: '🎯', description: `${adjustedGames} ${lang === 'fr' ? 'parties longues' : 'long games'}`, time: '60min' },
+        { icon: '🤖', description: lang === 'fr' ? 'Analyse AI 2 parties' : 'AI analysis 2 games', time: '30min' },
+        { icon: '🧩', description: `${adjustedTsumego} ${lang === 'fr' ? 'tsumegos capture' : 'capture tsumegos'}`, time: '30min' }
+      ]
+    },
+    {
+      name: lang === 'fr' ? 'MERCREDI' : 'WEDNESDAY',
+      totalTime: Math.round(dailyMinutes/60) + (lang === 'fr' ? 'h' : 'h'),
+      activities: [
+        { icon: '📖', description: `${lang === 'fr' ? 'Étude' : 'Study'} ${config.focus}`, time: '45min' },
+        { icon: '⚡', description: `${Math.floor(adjustedGames/2)} ${lang === 'fr' ? 'parties blitz' : 'blitz games'}`, time: '20min' },
+        { icon: '🧩', description: `${adjustedTsumego} ${lang === 'fr' ? 'tsumegos formes' : 'shape tsumegos'}`, time: '25min' }
+      ]
+    },
+    {
+      name: lang === 'fr' ? 'JEUDI' : 'THURSDAY',
+      totalTime: Math.round(dailyMinutes/60) + (lang === 'fr' ? 'h' : 'h'),
+      activities: [
+        { icon: '⚡', description: `${adjustedGames} ${lang === 'fr' ? 'parties rapides' : 'fast games'}`, time: '45min' },
+        { icon: '🎯', description: lang === 'fr' ? 'Parties contre plus fort' : 'Games vs stronger players', time: '40min' },
+        { icon: '🧩', description: `${adjustedTsumego} ${lang === 'fr' ? 'tsumegos combinés' : 'combined tsumegos'}`, time: '35min' }
+      ]
+    },
+    {
+      name: lang === 'fr' ? 'VENDREDI' : 'FRIDAY',
+      totalTime: Math.round(dailyMinutes/60) + (lang === 'fr' ? 'h' : 'h'),
+      activities: [
+        { icon: '🤖', description: lang === 'fr' ? 'Analyse AI complète' : 'Complete AI analysis', time: '50min' },
+        { icon: '⚡', description: `${adjustedGames} ${lang === 'fr' ? 'parties variées' : 'varied games'}`, time: '40min' },
+        { icon: '📚', description: lang === 'fr' ? 'Révision semaine' : 'Week review', time: '30min' }
+      ]
+    },
+    {
+      name: lang === 'fr' ? 'SAMEDI' : 'SATURDAY',
+      totalTime: Math.round(dailyMinutes*1.5/60) + (lang === 'fr' ? 'h' : 'h'),
+      activities: [
+        { icon: '🎯', description: lang === 'fr' ? 'Tournoi ou parties longues' : 'Tournament or long games', time: '90min' },
+        { icon: '🧩', description: `${adjustedTsumego * 2} ${lang === 'fr' ? 'tsumegos marathon' : 'tsumego marathon'}`, time: '45min' },
+        { icon: '📖', description: lang === 'fr' ? 'Étude libre' : 'Free study', time: '30min' }
+      ]
+    },
+    {
+      name: lang === 'fr' ? 'DIMANCHE' : 'SUNDAY',
+      totalTime: Math.round(dailyMinutes/60) + (lang === 'fr' ? 'h' : 'h'),
+      activities: [
+        { icon: '🌱', description: lang === 'fr' ? 'Parties amicales' : 'Friendly games', time: '60min' },
+        { icon: '📚', description: lang === 'fr' ? 'Planification semaine' : 'Week planning', time: '20min' },
+        { icon: '🧘', description: lang === 'fr' ? 'Repos actif' : 'Active rest', time: '40min' }
+      ]
+    }
+  ];
+  
+  return {
+    days: days,
+    totalGames: adjustedGames * 5 + Math.floor(adjustedGames/2) + adjustedGames + Math.round(adjustedGames * 1.5),
+    totalTsumego: adjustedTsumego * 6 + (adjustedTsumego * 2),
+    totalTime: Math.round((dailyMinutes * 7) / 60)
+  };
 }
+
+// [Le reste des fonctions reste identique...]
 
 // Vérifier si l'objectif est atteint
 function checkGoalAchievement() {
@@ -1163,7 +1372,6 @@ function checkGoalAchievement() {
   const currentLevel = activeChar.level;
   const goalLevel = activeChar.goal;
   
-  // Logique simplifiée pour la démo
   const levels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
   const currentIndex = levels.indexOf(currentLevel);
   const goalIndex = levels.indexOf(goalLevel);
@@ -1192,7 +1400,6 @@ function renderRanking() {
   const rankTable = document.getElementById('rankTable').querySelector('tbody');
   rankTable.innerHTML = '';
   
-  // Trier par XP
   const sortedChars = [...characters].sort((a, b) => b.xp - a.xp);
   
   sortedChars.forEach((char, index) => {
@@ -1219,12 +1426,10 @@ function renderProfile() {
   document.getElementById('profileXP').textContent = activeChar.xp;
   document.getElementById('profileGoal').textContent = activeChar.goal;
   
-  // Calculer les jours d'entraînement
   const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
   document.getElementById('profileDays').textContent = Object.keys(charData).length;
   document.getElementById('profileAchievements').textContent = activeChar.achievements ? activeChar.achievements.length : 0;
   
-  // Couleur du thème
   document.getElementById('profileThemeColor').value = activeChar.theme || '#ff003c';
   document.getElementById('colorPreview').style.background = activeChar.theme || '#ff003c';
 }
@@ -1237,8 +1442,6 @@ function updateProfileTheme() {
   activeChar.theme = newColor;
   saveChars();
   document.getElementById('colorPreview').style.background = newColor;
-  
-  // Mettre à jour la variable CSS
   document.documentElement.style.setProperty('--rouge', newColor);
 }
 
@@ -1259,7 +1462,6 @@ function addLogEntry() {
   const oppLevel = document.getElementById('oppLevel').value;
   const notes = document.getElementById('notes').value;
   
-  // Validation
   if (wins > games) {
     alert("Le nombre de victoires ne peut pas être supérieur au nombre de parties !");
     return;
@@ -1278,18 +1480,14 @@ function addLogEntry() {
   
   localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
   
-  // Ajouter XP
   activeChar.xp += games * 10 + tsu * 2 + Math.floor(time / 10);
   saveChars();
   
-  // Vérifier les succès
   checkAchievements(charData);
   
-  // Rafraîchir l'interface
   refresh();
   renderLog();
   
-  // Réinitialiser le formulaire
   document.getElementById('logForm').reset();
 }
 
@@ -1301,7 +1499,6 @@ function renderLog() {
   
   logbook.innerHTML = '';
   
-  // Trier par jour (du plus récent au plus ancien)
   const sortedDays = Object.keys(charData).sort((a, b) => b - a);
   
   sortedDays.forEach(day => {
@@ -1335,7 +1532,6 @@ function renderLog() {
     logbook.appendChild(logEntry);
   });
   
-  // Mettre à jour la dernière entrée
   const lastEntry = sortedDays[0];
   if (lastEntry) {
     document.getElementById('histAjout').textContent = trad[lang].lastEntry + lastEntry;
@@ -1381,7 +1577,53 @@ function resetData() {
   }
 }
 
-// Chat functions
+// ========== FIREBASE ==========
+async function initializeFirebase() {
+  if (firebaseInitialized) return;
+  
+  try {
+    const firebaseAppScript = document.createElement('script');
+    firebaseAppScript.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    
+    const firebaseFirestoreScript = document.createElement('script');
+    firebaseFirestoreScript.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    await new Promise((resolve, reject) => {
+      firebaseAppScript.onload = () => {
+        document.head.appendChild(firebaseFirestoreScript);
+        firebaseFirestoreScript.onload = resolve;
+        firebaseFirestoreScript.onerror = reject;
+      };
+      firebaseAppScript.onerror = reject;
+      document.head.appendChild(firebaseAppScript);
+    });
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
+      authDomain: "fox-rpg-406d6.firebaseapp.com",
+      projectId: "fox-rpg-406d6",
+      storageBucket: "fox-rpg-406d6.firebasestorage.app",
+      messagingSenderId: "218915576778",
+      appId: "1:218915576778:web:8b03757d20b8451e428d33"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    
+    console.log("🔥 Firebase connecté !");
+    firebaseInitialized = true;
+    
+  } catch (error) {
+    console.error("❌ Erreur Firebase:", error);
+    db = {
+      collection: () => ({
+        add: () => Promise.resolve(),
+        get: () => Promise.resolve({ docs: [] })
+      })
+    };
+  }
+}
+
 function toggleChat() {
   const chatbox = document.getElementById('chatbox');
   chatVisible = !chatVisible;
@@ -1399,13 +1641,12 @@ function toggleChat() {
 }
 
 async function setupChatListener() {
-  if (!db || !activeChar) return;
+  if (!firebaseInitialized || !activeChar) return;
   
   try {
-    const { collection, onSnapshot, query, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const q = firebase.firestore().collection("chat").orderBy("timestamp", "asc");
     
-    const q = query(collection(db, "chat"), orderBy("timestamp", "asc"));
-    onSnapshot(q, (snapshot) => {
+    q.onSnapshot((snapshot) => {
       const chatMessages = document.getElementById('chatMessages');
       chatMessages.innerHTML = '';
       
@@ -1431,7 +1672,7 @@ async function setupChatListener() {
 }
 
 async function sendMessage() {
-  if (!activeChar || !db) {
+  if (!activeChar || !firebaseInitialized) {
     alert(trad[lang].chatConnect);
     return;
   }
@@ -1442,12 +1683,10 @@ async function sendMessage() {
   if (!message) return;
   
   try {
-    const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-    
-    await addDoc(collection(db, "chat"), {
+    await firebase.firestore().collection("chat").add({
       user: activeChar.name,
       text: message,
-      timestamp: serverTimestamp()
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
     
     chatInput.value = '';
@@ -1459,7 +1698,6 @@ async function sendMessage() {
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialiser le chat
   const chatInput = document.getElementById('chatInput');
   if (chatInput) {
     chatInput.addEventListener('keypress', function(e) {
@@ -1469,16 +1707,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Gestion du formulaire de log
   document.getElementById('logForm').addEventListener('submit', function(e) {
     e.preventDefault();
     addLogEntry();
   });
   
-  // Charger les personnages
   loadChars();
   
-  // Easter eggs
   let foxClicks = 0;
   const activeEmoji = document.getElementById('activeEmoji');
   if (activeEmoji) {
@@ -1512,7 +1747,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Initialiser Firebase
   initializeFirebase();
 });
 </script>
