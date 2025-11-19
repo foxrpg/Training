@@ -6,6 +6,7 @@
   <title>Fox RPG Beta Test</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
   <style>
+    /* [Tous les styles CSS restent identiques] */
     .prog-line{
       display:flex;
       align-items:center;
@@ -861,6 +862,7 @@ let activeChar = null;
 let isAdmin = false;
 let chatVisible = false;
 let db = null;
+let lang = 'fr';
 
 // ========== TRADUCTIONS COMPLÈTES ==========
 const trad = {
@@ -1191,7 +1193,483 @@ function loginUser() {
   }
 }
 
-// [Le reste des fonctions reste identique mais utilise maintenant les traductions...]
+// Charger les personnages
+function loadChars() {
+  const saved = localStorage.getItem('fox7d-chars');
+  if (saved) {
+    characters = JSON.parse(saved);
+    const savedActive = localStorage.getItem('fox7d-active');
+    if (savedActive) {
+      const activeIndex = characters.findIndex(c => c.id === savedActive);
+      if (activeIndex !== -1) {
+        loginCharacter(activeIndex);
+      }
+    }
+    updateWelcomeStats();
+  }
+}
+
+// Sauvegarder les personnages
+function saveChars() {
+  localStorage.setItem('fox7d-chars', JSON.stringify(characters));
+  updateWelcomeStats();
+}
+
+// Connexion d'un personnage
+function loginCharacter(index) {
+  activeChar = characters[index];
+  localStorage.setItem('fox7d-active', activeChar.id);
+  
+  // Afficher le bouton profil
+  document.getElementById('navProfile').style.display = 'block';
+  
+  // Mettre à jour l'interface
+  refresh();
+  renderLog();
+  renderAchievements();
+  renderWeeklyProgram();
+  checkGoalAchievement();
+  
+  // Aller à la page jeu
+  showPage('game');
+  
+  // Initialiser Firebase si pas déjà fait
+  if (!db) {
+    initializeFirebase();
+  }
+}
+
+// Créer un personnage
+function createCharacter() {
+  const name = document.getElementById('charName').value.trim();
+  const pwd = document.getElementById('charPwd').value;
+  
+  if (!name || !pwd) {
+    alert(trad[lang].namePasswordRequired);
+    return;
+  }
+  
+  // Vérifier si le nom existe déjà
+  if (characters.some(char => char.name.toLowerCase() === name.toLowerCase())) {
+    alert("Ce nom est déjà utilisé !");
+    return;
+  }
+  
+  const newChar = {
+    id: Date.now().toString(),
+    name: name,
+    avatar: document.getElementById('charAvatar').value,
+    level: document.getElementById('charLevel').value,
+    goal: document.getElementById('charGoal').value,
+    time: document.getElementById('charTime').value,
+    pwd: pwd,
+    theme: document.getElementById('themeColor').value,
+    quote: document.getElementById('charQuote').value,
+    gender: document.getElementById('charGender').value,
+    style: document.getElementById('charStyle').value,
+    xp: 0,
+    achievements: [],
+    created: new Date().toISOString()
+  };
+  
+  characters.push(newChar);
+  saveChars();
+  
+  // Se connecter automatiquement
+  const charIndex = characters.findIndex(c => c.id === newChar.id);
+  loginCharacter(charIndex);
+  
+  alert("Personnage créé avec succès !");
+}
+
+// Rafraîchir l'interface
+function refresh() {
+  if (!activeChar) return;
+  
+  // Mettre à jour les infos du personnage
+  document.getElementById('activeEmoji').textContent = activeChar.avatar;
+  document.getElementById('activeName').textContent = activeChar.name;
+  document.getElementById('activeLvl').textContent = `Niveau ${activeChar.level}`;
+  document.getElementById('activeQuote').textContent = activeChar.quote;
+  
+  // Mettre à jour la barre XP
+  const xpPercent = Math.min((activeChar.xp / 1000) * 100, 100);
+  document.getElementById('xpFill').style.width = xpPercent + '%';
+  document.getElementById('xpText').textContent = `${activeChar.xp} / 1000 XP`;
+  
+  // Mettre à jour la progression globale
+  updateProgress();
+}
+
+// Mettre à jour la progression
+function updateProgress() {
+  if (!activeChar) return;
+  
+  const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
+  const days = Object.keys(charData).length;
+  const progressPercent = Math.min((days / 365) * 100, 100);
+  
+  document.getElementById('progressFill').style.width = progressPercent + '%';
+  document.getElementById('progressFill').textContent = Math.round(progressPercent) + ' %';
+  document.getElementById('dayLabel').textContent = days;
+  
+  // Mettre à jour le texte d'objectif
+  document.getElementById('goalText').textContent = trad[lang].goalText + activeChar.goal + ' Fox';
+}
+
+// Afficher les succès
+function renderAchievements() {
+  if (!activeChar) return;
+  
+  const achList = document.getElementById('achList');
+  achList.innerHTML = '';
+  
+  const achievements = [
+    { id: 'first_game', name: { fr: 'Première partie', en: 'First Game' }, desc: { fr: 'Jouer sa première partie', en: 'Play your first game' } },
+    { id: '10_games', name: { fr: '10 Parties', en: '10 Games' }, desc: { fr: 'Jouer 10 parties', en: 'Play 10 games' } },
+    { id: '50_games', name: { fr: '50 Parties', en: '50 Games' }, desc: { fr: 'Jouer 50 parties', en: 'Play 50 games' } },
+    { id: '100_tsumego', name: { fr: '100 Tsumegos', en: '100 Tsumegos' }, desc: { fr: 'Résoudre 100 tsumegos', en: 'Solve 100 tsumegos' } },
+    { id: '7_days', name: { fr: '7 Jours', en: '7 Days' }, desc: { fr: 'S\'entraîner 7 jours de suite', en: 'Train for 7 consecutive days' } },
+    { id: '30_days', name: { fr: '30 Jours', en: '30 Days' }, desc: { fr: 'S\'entraîner 30 jours', en: 'Train for 30 days' } }
+  ];
+  
+  achievements.forEach(ach => {
+    const unlocked = activeChar.achievements && activeChar.achievements.includes(ach.id);
+    const div = document.createElement('div');
+    div.className = `achievement ${unlocked ? 'unlocked' : ''}`;
+    div.innerHTML = `
+      ${unlocked ? '🏆' : '🔒'} ${ach.name[lang]}
+      <span class="tooltiptext">${ach.desc[lang]}</span>
+    `;
+    achList.appendChild(div);
+  });
+}
+
+// Afficher le programme hebdomadaire
+function renderWeeklyProgram() {
+  if (!activeChar) return;
+  
+  const programBox = document.getElementById('weeklyProgram');
+  const programs = {
+    fr: `LUNDI : 5 parties rapides + 20 tsumegos
+MARDI : 3 parties longues + revue AI
+MERCREDI : Étude de joseki (30 min)
+JEUDI : 5 parties rapides + 20 tsumegos
+VENDREDI : Parties contre joueurs plus forts
+SAMEDI : Revue de la semaine + 30 tsumegos
+DIMANCHE : Repos ou parties amicales`,
+    en: `MONDAY: 5 fast games + 20 tsumegos
+TUESDAY: 3 long games + AI review
+WEDNESDAY: Joseki study (30 min)
+THURSDAY: 5 fast games + 20 tsumegos
+FRIDAY: Games against stronger players
+SATURDAY: Week review + 30 tsumegos
+SUNDAY: Rest or friendly games`
+  };
+  
+  programBox.textContent = programs[lang];
+}
+
+// Vérifier si l'objectif est atteint
+function checkGoalAchievement() {
+  if (!activeChar) return;
+  
+  const currentLevel = activeChar.level;
+  const goalLevel = activeChar.goal;
+  
+  // Logique simplifiée pour la démo
+  const levels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
+  const currentIndex = levels.indexOf(currentLevel);
+  const goalIndex = levels.indexOf(goalLevel);
+  
+  if (currentIndex >= goalIndex) {
+    document.getElementById('goalAchievedBtn').style.display = 'block';
+  } else {
+    document.getElementById('goalAchievedBtn').style.display = 'none';
+  }
+}
+
+// Objectif atteint
+function goalAchieved() {
+  const newGoal = prompt(trad[lang].goalCongratulations.replace('{goal}', activeChar.goal));
+  if (newGoal) {
+    activeChar.goal = newGoal;
+    saveChars();
+    refresh();
+    alert(trad[lang].newGoalSet.replace('{goal}', newGoal));
+    document.getElementById('goalAchievedBtn').style.display = 'none';
+  }
+}
+
+// Afficher le classement
+function renderRanking() {
+  const rankTable = document.getElementById('rankTable').querySelector('tbody');
+  rankTable.innerHTML = '';
+  
+  // Trier par XP
+  const sortedChars = [...characters].sort((a, b) => b.xp - a.xp);
+  
+  sortedChars.forEach((char, index) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${char.avatar}</td>
+      <td>${char.name}</td>
+      <td>${char.xp}</td>
+      <td>${char.level}</td>
+    `;
+    rankTable.appendChild(row);
+  });
+}
+
+// Afficher le profil
+function renderProfile() {
+  if (!activeChar) return;
+  
+  document.getElementById('profileAvatar').textContent = activeChar.avatar;
+  document.getElementById('profileName').textContent = activeChar.name;
+  document.getElementById('profileLevel').textContent = `Niveau ${activeChar.level}`;
+  document.getElementById('profileQuote').textContent = activeChar.quote;
+  document.getElementById('profileXP').textContent = activeChar.xp;
+  document.getElementById('profileGoal').textContent = activeChar.goal;
+  
+  // Calculer les jours d'entraînement
+  const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
+  document.getElementById('profileDays').textContent = Object.keys(charData).length;
+  document.getElementById('profileAchievements').textContent = activeChar.achievements ? activeChar.achievements.length : 0;
+  
+  // Couleur du thème
+  document.getElementById('profileThemeColor').value = activeChar.theme || '#ff003c';
+  document.getElementById('colorPreview').style.background = activeChar.theme || '#ff003c';
+}
+
+// Mettre à jour le thème du profil
+function updateProfileTheme() {
+  if (!activeChar) return;
+  
+  const newColor = document.getElementById('profileThemeColor').value;
+  activeChar.theme = newColor;
+  saveChars();
+  document.getElementById('colorPreview').style.background = newColor;
+  
+  // Mettre à jour la variable CSS
+  document.documentElement.style.setProperty('--rouge', newColor);
+}
+
+// Gestion du carnet d'entraînement
+document.getElementById('logForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  addLogEntry();
+});
+
+function addLogEntry() {
+  if (!activeChar) return;
+  
+  const day = document.getElementById('logDay').value;
+  const games = parseInt(document.getElementById('games').value);
+  const wins = parseInt(document.getElementById('wins').value);
+  const tsu = parseInt(document.getElementById('tsu').value);
+  const time = parseInt(document.getElementById('time').value);
+  const oppLevel = document.getElementById('oppLevel').value;
+  const notes = document.getElementById('notes').value;
+  
+  // Validation
+  if (wins > games) {
+    alert("Le nombre de victoires ne peut pas être supérieur au nombre de parties !");
+    return;
+  }
+  
+  const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
+  charData[day] = {
+    games: games,
+    wins: wins,
+    tsu: tsu,
+    time: time,
+    oppLevel: oppLevel,
+    notes: notes,
+    date: new Date().toISOString()
+  };
+  
+  localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
+  
+  // Ajouter XP
+  activeChar.xp += games * 10 + tsu * 2 + Math.floor(time / 10);
+  saveChars();
+  
+  // Vérifier les succès
+  checkAchievements(charData);
+  
+  // Rafraîchir l'interface
+  refresh();
+  renderLog();
+  
+  // Réinitialiser le formulaire
+  document.getElementById('logForm').reset();
+}
+
+function renderLog() {
+  if (!activeChar) return;
+  
+  const logbook = document.getElementById('logbook');
+  const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
+  
+  logbook.innerHTML = '';
+  
+  // Trier par jour (du plus récent au plus ancien)
+  const sortedDays = Object.keys(charData).sort((a, b) => b - a);
+  
+  sortedDays.forEach(day => {
+    const entry = charData[day];
+    const winRate = entry.games > 0 ? Math.round((entry.wins / entry.games) * 100) : 0;
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = 'log-entry';
+    logEntry.innerHTML = `
+      <header>
+        <span>${trad[lang].dayText} ${day}</span>
+        <span>${new Date(entry.date).toLocaleDateString()}</span>
+      </header>
+      <div class="log-stats">
+        <div class="log-stat">
+          <div class="log-stat-value">${entry.games}</div>
+          <div>${trad[lang].gamesLabel}</div>
+        </div>
+        <div class="log-stat">
+          <div class="log-stat-value">${winRate}%</div>
+          <div>Win-rate</div>
+        </div>
+        <div class="log-stat">
+          <div class="log-stat-value">${entry.tsu}</div>
+          <div>${trad[lang].tsuLabel}</div>
+        </div>
+      </div>
+      <p><strong>${trad[lang].oppLabel}:</strong> ${entry.oppLevel}</p>
+      <p><strong>${trad[lang].notesLabel}:</strong> ${entry.notes}</p>
+    `;
+    logbook.appendChild(logEntry);
+  });
+  
+  // Mettre à jour la dernière entrée
+  const lastEntry = sortedDays[0];
+  if (lastEntry) {
+    document.getElementById('histAjout').textContent = trad[lang].lastEntry + lastEntry;
+  }
+}
+
+function checkAchievements(charData) {
+  const totalGames = Object.values(charData).reduce((sum, entry) => sum + entry.games, 0);
+  const totalTsu = Object.values(charData).reduce((sum, entry) => sum + entry.tsu, 0);
+  const totalDays = Object.keys(charData).length;
+  
+  const achievementsToCheck = [
+    { id: 'first_game', condition: totalGames >= 1 },
+    { id: '10_games', condition: totalGames >= 10 },
+    { id: '50_games', condition: totalGames >= 50 },
+    { id: '100_tsumego', condition: totalTsu >= 100 },
+    { id: '7_days', condition: totalDays >= 7 },
+    { id: '30_days', condition: totalDays >= 30 }
+  ];
+  
+  achievementsToCheck.forEach(ach => {
+    if (ach.condition && activeChar.achievements && !activeChar.achievements.includes(ach.id)) {
+      activeChar.achievements.push(ach.id);
+      alert(trad[lang].achievementUnlocked + ach.id);
+    }
+  });
+  
+  saveChars();
+  renderAchievements();
+}
+
+function resetData() {
+  if (confirm(trad[lang].confirmReset)) {
+    if (activeChar) {
+      localStorage.removeItem('fox7d-' + activeChar.id);
+      activeChar.xp = 0;
+      activeChar.achievements = [];
+      saveChars();
+      refresh();
+      renderLog();
+      renderAchievements();
+    }
+  }
+}
+
+// Chat functions
+function toggleChat() {
+  const chatbox = document.getElementById('chatbox');
+  chatVisible = !chatVisible;
+  
+  if (chatVisible) {
+    chatbox.classList.add('active');
+    if (activeChar) {
+      setupChatListener();
+    } else {
+      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
+    }
+  } else {
+    chatbox.classList.remove('active');
+  }
+}
+
+async function setupChatListener() {
+  if (!db || !activeChar) return;
+  
+  try {
+    const { collection, onSnapshot, query, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    
+    const q = query(collection(db, "chat"), orderBy("timestamp", "asc"));
+    onSnapshot(q, (snapshot) => {
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.innerHTML = '';
+      
+      snapshot.forEach((doc) => {
+        const message = doc.data();
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message';
+        messageDiv.innerHTML = `
+          <div class="message-header">
+            <span class="message-user">${message.user}</span>
+            <span class="message-time">${new Date(message.timestamp?.toDate()).toLocaleTimeString()}</span>
+          </div>
+          <div>${message.text}</div>
+        `;
+        chatMessages.appendChild(messageDiv);
+      });
+      
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+  } catch (error) {
+    console.error("Erreur chat:", error);
+  }
+}
+
+async function sendMessage() {
+  if (!activeChar || !db) {
+    alert(trad[lang].chatConnect);
+    return;
+  }
+  
+  const chatInput = document.getElementById('chatInput');
+  const message = chatInput.value.trim();
+  
+  if (!message) return;
+  
+  try {
+    const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    
+    await addDoc(collection(db, "chat"), {
+      user: activeChar.name,
+      text: message,
+      timestamp: serverTimestamp()
+    });
+    
+    chatInput.value = '';
+  } catch (error) {
+    console.error(trad[lang].messageError, error);
+    alert(trad[lang].messageError);
+  }
+}
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
@@ -1205,36 +1683,52 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
+  // Gestion du formulaire de log
+  document.getElementById('logForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    addLogEntry();
+  });
+  
   // Charger les personnages
   loadChars();
   
   // Easter eggs
   let foxClicks = 0;
-  document.getElementById('activeEmoji').onclick = () => {
-    foxClicks++;
-    if (foxClicks === 7) { alert("🦊 : Tu es un vrai renard ! Continue à t'entraîner !"); foxClicks = 0; }
-  };
+  const activeEmoji = document.getElementById('activeEmoji');
+  if (activeEmoji) {
+    activeEmoji.onclick = () => {
+      foxClicks++;
+      if (foxClicks === 7) { 
+        alert("🦊 : Tu es un vrai renard ! Continue à t'entraîner !"); 
+        foxClicks = 0; 
+      }
+    };
+  }
   
   document.getElementById('mainTitle').ondblclick = () => {
     document.body.style.filter = 'invert(1)';
     setTimeout(() => document.body.style.filter = 'none', 1500);
   };
   
-  document.getElementById('notes').addEventListener('input', e => {
-    if (e.target.value.toLowerCase().includes('fox')) {
-      const span = document.createElement('span');
-      span.textContent = '🦊';
-      span.style.position = 'absolute';
-      span.style.fontSize = '2rem';
-      span.style.pointerEvents = 'none';
-      span.style.animation = 'fadeOut 2s forwards';
-      document.body.appendChild(span);
-      setTimeout(() => span.remove(), 2000);
-    }
-  });
+  const notesInput = document.getElementById('notes');
+  if (notesInput) {
+    notesInput.addEventListener('input', e => {
+      if (e.target.value.toLowerCase().includes('fox')) {
+        const span = document.createElement('span');
+        span.textContent = '🦊';
+        span.style.position = 'absolute';
+        span.style.fontSize = '2rem';
+        span.style.pointerEvents = 'none';
+        span.style.animation = 'fadeOut 2s forwards';
+        document.body.appendChild(span);
+        setTimeout(() => span.remove(), 2000);
+      }
+    });
+  }
+  
+  // Initialiser Firebase
+  initializeFirebase();
 });
-
-// [Toutes les autres fonctions du code précédent restent valides...]
 </script>
 </body>
 </html>
