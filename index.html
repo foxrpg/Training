@@ -1019,6 +1019,22 @@ let db = null;
 let lang = 'fr';
 let firebaseInitialized = false;
 
+// ========== FONCTIONS DE BASE ==========
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  
+  if (name === 'ranking') renderRanking();
+  if (name === 'welcome') updateWelcomeStats();
+  if (name === 'profile' && activeChar) renderProfile();
+  if (name === 'game') { 
+    renderWeeklyProgram(); 
+    renderAchievements(); 
+    checkGoalAchievement();
+    if (activeChar) setupChatListener();
+  }
+}
+
 // ========== TRADUCTIONS ==========
 const trad = {
   fr: {
