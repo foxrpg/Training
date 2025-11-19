@@ -1020,118 +1020,212 @@ function updateWelcomeStats() {
   document.getElementById('totalAchievements').textContent = totalAchievements;
 }
 
-// ========== GESTION DES PERSONNAGES ==========
+// ========== GESTION DES PERSONNAGES AVEC FIREBASE ==========
 
-function loginUser() {
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
-  
-  if (!username || !password) {
-    alert(trad[lang].credentialsRequired);
-    return;
-  }
-  
-  const character = characters.find(char => 
-    char.name.toLowerCase() === username.toLowerCase() && char.pwd === password
-  );
-  
-  if (character) {
-    const charIndex = characters.findIndex(c => c.id === character.id);
-    if (charIndex !== -1) {
-      loginCharacter(charIndex);
-    } else {
-      alert("Erreur: Personnage non trouvé");
+async function createCharacter() {
+    const name = document.getElementById('charName').value.trim();
+    const pwd = document.getElementById('charPwd').value;
+    
+    if (!name || !pwd) {
+        alert(trad[lang].namePasswordRequired);
+        return;
     }
-  } else {
-    alert(trad[lang].wrongCredentials);
-  }
+    
+    try {
+        // Vérifier si le nom existe déjà (dans Firebase)
+        const snapshot = await db.collection("characters")
+            .where("name", "==", name.toLowerCase())
+            .get();
+            
+        if (!snapshot.empty) {
+            alert("Ce nom est déjà utilisé !");
+            return;
+        }
+        
+        const newChar = {
+            id: Date.now().toString(),
+            name: name,
+            nameLower: name.toLowerCase(), // Pour les recherches
+            avatar: document.getElementById('charAvatar').value,
+            level: document.getElementById('charLevel').value,
+            goal: document.getElementById('charGoal').value,
+            time: document.getElementById('charTime').value,
+            pwd: pwd, // ⚠️ En production, il faudrait hasher le mot de passe
+            theme: document.getElementById('themeColor').value,
+            quote: document.getElementById('charQuote').value,
+            gender: document.getElementById('charGender').value,
+            style: document.getElementById('charStyle').value,
+            xp: 0,
+            achievements: [],
+            created: firebase.firestore.FieldValue.serverTimestamp(),
+            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        // Sauvegarder dans Firebase
+        await db.collection("characters").doc(newChar.id).set(newChar);
+        
+        // Mettre à jour localement aussi
+        characters.push(newChar);
+        localStorage.setItem('fox7d-chars', JSON.stringify(characters));
+        
+        const charIndex = characters.findIndex(c => c.id === newChar.id);
+        loginCharacter(charIndex);
+        
+        alert("Personnage créé avec succès !");
+        
+    } catch (error) {
+        console.error("Erreur création personnage:", error);
+        alert("Erreur lors de la création du personnage");
+    }
 }
 
-function loginCharacter(charIndex) {
-  if (charIndex === undefined || charIndex === null || charIndex < 0) {
-    console.error("❌ Index de personnage invalide:", charIndex);
-    return;
-  }
-  
-  if (!characters[charIndex]) {
-    console.error("❌ Personnage non trouvé à l'index:", charIndex);
-    return;
-  }
-  
-  activeChar = characters[charIndex];
-  localStorage.setItem('fox7d-active', activeChar.id);
-  
-  document.getElementById('navProfile').style.display = 'block';
-  
-  refresh();
-  renderLog();
-  renderAchievements();
-  renderWeeklyProgram();
-  checkGoalAchievement();
-  
-  showPage('game');
-  
-  console.log("✅ Personnage connecté, Firebase prêt pour le chat");
+async function loginUser() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    
+    if (!username || !password) {
+        alert(trad[lang].credentialsRequired);
+        return;
+    }
+    
+    try {
+        // Chercher dans Firebase d'abord
+        const snapshot = await db.collection("characters")
+            .where("nameLower", "==", username.toLowerCase())
+            .where("pwd", "==", password)
+            .get();
+        
+        if (!snapshot.empty) {
+            // Personnage trouvé dans Firebase
+            const characterData = snapshot.docs[0].data();
+            
+            // Mettre à jour la dernière connexion
+            await db.collection("characters").doc(characterData.id).update({
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Vérifier si le personnage existe localement, sinon l'ajouter
+            let charIndex = characters.findIndex(c => c.id === characterData.id);
+            if (charIndex === -1) {
+                characters.push(characterData);
+                saveChars();
+                charIndex = characters.length - 1;
+            } else {
+                // Mettre à jour les données locales avec celles de Firebase
+                characters[charIndex] = characterData;
+                saveChars();
+            }
+            
+            loginCharacter(charIndex);
+            
+        } else {
+            // Vérifier en local (pour compatibilité)
+            const localCharacter = characters.find(char => 
+                char.name.toLowerCase() === username.toLowerCase() && char.pwd === password
+            );
+            
+            if (localCharacter) {
+                const charIndex = characters.findIndex(c => c.id === localCharacter.id);
+                loginCharacter(charIndex);
+                
+                // Migrer vers Firebase
+                await migrateCharacterToFirebase(localCharacter);
+                
+            } else {
+                alert(trad[lang].wrongCredentials);
+            }
+        }
+        
+    } catch (error) {
+        console.error("Erreur connexion:", error);
+        // Fallback vers le système local
+        const localCharacter = characters.find(char => 
+            char.name.toLowerCase() === username.toLowerCase() && char.pwd === password
+        );
+        
+        if (localCharacter) {
+            const charIndex = characters.findIndex(c => c.id === localCharacter.id);
+            loginCharacter(charIndex);
+        } else {
+            alert(trad[lang].wrongCredentials);
+        }
+    }
 }
 
-function createCharacter() {
-  const name = document.getElementById('charName').value.trim();
-  const pwd = document.getElementById('charPwd').value;
-  
-  if (!name || !pwd) {
-    alert(trad[lang].namePasswordRequired);
-    return;
-  }
-  
-  if (characters.some(char => char.name.toLowerCase() === name.toLowerCase())) {
-    alert("Ce nom est déjà utilisé !");
-    return;
-  }
-  
-  const newChar = {
-    id: Date.now().toString(),
-    name: name,
-    avatar: document.getElementById('charAvatar').value,
-    level: document.getElementById('charLevel').value,
-    goal: document.getElementById('charGoal').value,
-    time: document.getElementById('charTime').value,
-    pwd: pwd,
-    theme: document.getElementById('themeColor').value,
-    quote: document.getElementById('charQuote').value,
-    gender: document.getElementById('charGender').value,
-    style: document.getElementById('charStyle').value,
-    xp: 0,
-    achievements: [],
-    created: new Date().toISOString()
-  };
-  
-  characters.push(newChar);
-  saveChars();
-  
-  const charIndex = characters.findIndex(c => c.id === newChar.id);
-  loginCharacter(charIndex);
-  
-  alert("Personnage créé avec succès !");
+async function migrateCharacterToFirebase(character) {
+    try {
+        await db.collection("characters").doc(character.id).set({
+            ...character,
+            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log("Personnage migré vers Firebase:", character.name);
+    } catch (error) {
+        console.error("Erreur migration personnage:", error);
+    }
 }
 
-function loadChars() {
-  const saved = localStorage.getItem('fox7d-chars');
-  if (saved) {
-    characters = JSON.parse(saved);
+async function loadChars() {
+    // Charger d'abord depuis le localStorage
+    const saved = localStorage.getItem('fox7d-chars');
+    if (saved) {
+        characters = JSON.parse(saved);
+    }
+    
+    // Ensuite, essayer de charger depuis Firebase
+    try {
+        if (firebaseInitialized && db) {
+            const snapshot = await db.collection("characters")
+                .orderBy("lastLogin", "desc")
+                .limit(50)
+                .get();
+                
+            if (!snapshot.empty) {
+                const firebaseChars = [];
+                snapshot.forEach(doc => {
+                    firebaseChars.push(doc.data());
+                });
+                
+                // Fusionner avec les caractères locaux
+                characters = mergeCharacters(characters, firebaseChars);
+                saveChars();
+            }
+        }
+    } catch (error) {
+        console.warn("Impossible de charger depuis Firebase, utilisation des données locales");
+    }
+    
+    // Connexion automatique si personnage actif sauvegardé
     const savedActive = localStorage.getItem('fox7d-active');
     if (savedActive) {
-      const activeIndex = characters.findIndex(c => c.id === savedActive);
-      if (activeIndex !== -1) {
-        loginCharacter(activeIndex);
-      }
+        const activeIndex = characters.findIndex(c => c.id === savedActive);
+        if (activeIndex !== -1) {
+            loginCharacter(activeIndex);
+        }
     }
+    
     updateWelcomeStats();
-  }
 }
 
-function saveChars() {
-  localStorage.setItem('fox7d-chars', JSON.stringify(characters));
-  updateWelcomeStats();
+function mergeCharacters(localChars, firebaseChars) {
+    const merged = [...localChars];
+    
+    firebaseChars.forEach(fbChar => {
+        const existingIndex = merged.findIndex(localChar => localChar.id === fbChar.id);
+        if (existingIndex === -1) {
+            // Nouveau personnage de Firebase
+            merged.push(fbChar);
+        } else {
+            // Fusionner en priorisant Firebase (données plus récentes)
+            merged[existingIndex] = {
+                ...merged[existingIndex],
+                ...fbChar,
+                // Garder certaines données locales si nécessaires
+                theme: merged[existingIndex].theme || fbChar.theme
+            };
+        }
+    });
+    
+    return merged;
 }
 
 // ========== FONCTIONS D'AFFICHAGE ==========
@@ -1392,24 +1486,65 @@ function goalAchieved() {
     document.getElementById('goalAchievedBtn').style.display = 'none';
   }
 }
-
-function renderRanking() {
-  const rankTable = document.getElementById('rankTable').querySelector('tbody');
-  rankTable.innerHTML = '';
-  
-  const sortedChars = [...characters].sort((a, b) => b.xp - a.xp);
-  
-  sortedChars.forEach((char, index) => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${char.avatar}</td>
-      <td>${char.name}</td>
-      <td>${char.xp}</td>
-      <td>${char.level}</td>
-    `;
-    rankTable.appendChild(row);
-  });
+async function renderRanking() {
+    const rankTable = document.getElementById('rankTable').querySelector('tbody');
+    rankTable.innerHTML = '<tr><td colspan="5">Chargement...</td></tr>';
+    
+    try {
+        let rankedChars = [];
+        
+        // Essayer Firebase d'abord
+        if (firebaseInitialized && db) {
+            const snapshot = await db.collection("characters")
+                .orderBy("xp", "desc")
+                .limit(100)
+                .get();
+                
+            if (!snapshot.empty) {
+                rankedChars = [];
+                snapshot.forEach(doc => {
+                    rankedChars.push(doc.data());
+                });
+            }
+        }
+        
+        // Fallback sur les données locales si Firebase échoue ou pas de données
+        if (rankedChars.length === 0) {
+            rankedChars = [...characters].sort((a, b) => b.xp - a.xp);
+        }
+        
+        rankTable.innerHTML = '';
+        
+        rankedChars.forEach((char, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${char.avatar}</td>
+                <td>${char.name}</td>
+                <td>${char.xp}</td>
+                <td>${char.level}</td>
+            `;
+            rankTable.appendChild(row);
+        });
+        
+    } catch (error) {
+        console.error("Erreur chargement classement:", error);
+        // Fallback local
+        const sortedChars = [...characters].sort((a, b) => b.xp - a.xp);
+        rankTable.innerHTML = '';
+        
+        sortedChars.forEach((char, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${char.avatar}</td>
+                <td>${char.name}</td>
+                <td>${char.xp}</td>
+                <td>${char.level}</td>
+            `;
+            rankTable.appendChild(row);
+        });
+    }
 }
 
 function renderProfile() {
@@ -1442,43 +1577,80 @@ function updateProfileTheme() {
 
 // ========== GESTION DU CARNET ==========
 
-function addLogEntry() {
-  if (!activeChar) return;
-  
-  const day = document.getElementById('logDay').value;
-  const games = parseInt(document.getElementById('games').value);
-  const wins = parseInt(document.getElementById('wins').value);
-  const tsu = parseInt(document.getElementById('tsu').value);
-  const time = parseInt(document.getElementById('time').value);
-  const oppLevel = document.getElementById('oppLevel').value;
-  const notes = document.getElementById('notes').value;
-  
-  if (wins > games) {
-    alert("Le nombre de victoires ne peut pas être supérieur au nombre de parties !");
-    return;
-  }
-  
-  const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
-  charData[day] = {
-    games: games,
-    wins: wins,
-    tsu: tsu,
-    time: time,
-    oppLevel: oppLevel,
-    notes: notes,
-    date: new Date().toISOString()
-  };
-  
-  localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
-  activeChar.xp += games * 10 + tsu * 2 + Math.floor(time / 10);
-  saveChars();
-  
-  checkAchievements(charData);
-  refresh();
-  renderLog();
-  document.getElementById('logForm').reset();
+async function addLogEntry() {
+    if (!activeChar) return;
+    
+    const day = document.getElementById('logDay').value;
+    const games = parseInt(document.getElementById('games').value);
+    const wins = parseInt(document.getElementById('wins').value);
+    const tsu = parseInt(document.getElementById('tsu').value);
+    const time = parseInt(document.getElementById('time').value);
+    const oppLevel = document.getElementById('oppLevel').value;
+    const notes = document.getElementById('notes').value;
+    
+    if (wins > games) {
+        alert("Le nombre de victoires ne peut pas être supérieur au nombre de parties !");
+        return;
+    }
+    
+    const xpGain = games * 10 + tsu * 2 + Math.floor(time / 10);
+    
+    try {
+        // Sauvegarder les données d'entraînement dans Firebase
+        const trainingData = {
+            day: day,
+            games: games,
+            wins: wins,
+            tsu: tsu,
+            time: time,
+            oppLevel: oppLevel,
+            notes: notes,
+            date: new Date().toISOString(),
+            xpGain: xpGain
+        };
+        
+        await db.collection("training_logs").add({
+            ...trainingData,
+            characterId: activeChar.id,
+            characterName: activeChar.name,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Mettre à jour l'XP dans Firebase
+        const newXp = activeChar.xp + xpGain;
+        await db.collection("characters").doc(activeChar.id).update({
+            xp: newXp,
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Mettre à jour localement
+        activeChar.xp = newXp;
+        
+    } catch (error) {
+        console.error("Erreur sauvegarde Firebase, sauvegarde locale seulement:", error);
+    }
+    
+    // Sauvegarde locale (toujours faite)
+    const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
+    charData[day] = {
+        games: games,
+        wins: wins,
+        tsu: tsu,
+        time: time,
+        oppLevel: oppLevel,
+        notes: notes,
+        date: new Date().toISOString()
+    };
+    
+    localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
+    activeChar.xp += xpGain;
+    saveChars();
+    
+    checkAchievements(charData);
+    refresh();
+    renderLog();
+    document.getElementById('logForm').reset();
 }
-
 function renderLog() {
   if (!activeChar) return;
   
