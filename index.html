@@ -1468,18 +1468,25 @@ function renderWeeklyProgram() {
   const dailyMinutes = getDailyMinutesFromTime(trainingTime);
   const customProgram = generateCustomProgram(activeChar.level, dailyMinutes);
   
+  // Trouver le jour actuel (0 = dimanche, 1 = lundi, etc.)
+  const todayIndex = new Date().getDay(); 
+  // Ajuster pour correspondre à votre tableau (0 = lundi dans votre programme)
+  const programIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+  
+  const todayProgram = customProgram.days[programIndex];
+  
   let programHTML = `
     <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius);">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <strong>📊 ${lang === 'fr' ? 'Programme personnalisé' : 'Custom Program'}</strong>
+          <strong>📊 ${lang === 'fr' ? 'Programme du jour' : 'Today\\s Program'}</strong>
           <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.3rem;">
             ${activeChar.name} • ${activeChar.level} → ${activeChar.goal} • ${trainingTime}/jour
           </div>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
           <div class="today-badge">${lang === 'fr' ? 'Aujourd\\hui' : 'Today'}</div>
-          <div style="font-size: 0.8rem; opacity: 0.7;">${new Date().toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long' })}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${new Date().toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
         </div>
       </div>
     </div>
@@ -1499,49 +1506,38 @@ function renderWeeklyProgram() {
       </div>
     </div>
 
-    <div class="weekly-program-grid">
-  `;
-  
-  customProgram.days.forEach((day, index) => {
-    const isToday = index === new Date().getDay() - 1;
-    const todayBadge = isToday ? '<span class="today-badge">' + (lang === 'fr' ? 'Aujourd\\hui' : 'Today') + '</span>' : '';
-    
-    programHTML += `
-      <div class="program-day-compact ${isToday ? 'current' : ''}">
+    <div style="margin-top: 1.5rem;">
+      <div class="program-day-compact current" style="max-width: 500px; margin: 0 auto;">
         <div class="day-header-compact">
-          <span>${day.name.split(' - ')[0]}</span>
-          ${todayBadge}
+          <span>${todayProgram.name.split(' - ')[0]}</span>
+          <span class="today-badge">${lang === 'fr' ? 'En cours' : 'In progress'}</span>
         </div>
-        <div class="day-focus">${day.focus}</div>
-        ${day.activities.map(activity => `
-          <div class="activity-compact">
+        <div class="day-focus" style="text-align: center; font-weight: 500; margin-bottom: 1rem;">${todayProgram.focus}</div>
+        ${todayProgram.activities.map(activity => `
+          <div class="activity-compact" style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 8px; margin-bottom: 0.8rem;">
             <div class="activity-icon-compact">${activity.icon}</div>
-            <div class="activity-desc">${activity.desc}</div>
-            <div class="activity-time">${activity.time}</div>
+            <div class="activity-desc" style="font-weight: 500;">${activity.desc}</div>
+            <div class="activity-time" style="background: var(--rouge); color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem; font-weight: bold;">${activity.time}</div>
           </div>
         `).join('')}
-        <div style="text-align: center; margin-top: 0.5rem; font-size: 0.7rem; opacity: 0.7;">
-          ${day.totalTime}
+        <div style="text-align: center; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.08); border-radius: var(--radius);">
+          <strong>${lang === 'fr' ? 'Temps total' : 'Total time'}: ${todayProgram.totalTime}</strong>
         </div>
       </div>
-    `;
-  });
-  
-  programHTML += `
     </div>
 
-    <div class="program-stats">
+    <div class="program-stats" style="margin-top: 2rem;">
       <div class="program-stat">
         <span class="program-stat-value">${customProgram.totalGames}</span>
-        <span class="program-stat-label">${lang === 'fr' ? 'Parties' : 'Games'}</span>
+        <span class="program-stat-label">${lang === 'fr' ? 'Parties/semaine' : 'Games/week'}</span>
       </div>
       <div class="program-stat">
         <span class="program-stat-value">${customProgram.totalTsumego}</span>
-        <span class="program-stat-label">${lang === 'fr' ? 'Tsumegos' : 'Tsumegos'}</span>
+        <span class="program-stat-label">${lang === 'fr' ? 'Tsumegos/semaine' : 'Tsumegos/week'}</span>
       </div>
       <div class="program-stat">
         <span class="program-stat-value">${customProgram.totalTime}h</span>
-        <span class="program-stat-label">${lang === 'fr' ? 'Heures' : 'Hours'}</span>
+        <span class="program-stat-label">${lang === 'fr' ? 'Heures/semaine' : 'Hours/week'}</span>
       </div>
       <div class="program-stat">
         <span class="program-stat-value">${customProgram.weeklyReviews}</span>
@@ -1551,22 +1547,13 @@ function renderWeeklyProgram() {
 
     <div style="text-align: center; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: var(--radius);">
       <div style="font-size: 0.8rem; opacity: 0.7;">
-        ${lang === 'fr' ? '💡 Cliquez sur un jour pour voir les détails' : '💡 Click on a day to see details'}
+        ${lang === 'fr' ? '💡 Programme mis à jour quotidiennement' : '💡 Program updated daily'}
       </div>
     </div>
   `;
   
   programBox.innerHTML = programHTML;
-  
-  // Ajouter les événements de clic
-  document.querySelectorAll('.program-day-compact').forEach(dayElement => {
-    dayElement.addEventListener('click', function() {
-      // Basculer l'affichage détaillé
-      this.classList.toggle('expanded');
-    });
-  });
 }
-
 
 function generateCustomProgram(level, dailyMinutes) {
   console.log("🔍 Génération programme pour:", level, "avec", dailyMinutes, "minutes");
