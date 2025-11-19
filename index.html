@@ -1245,9 +1245,7 @@ function renderAchievements() {
 
 // ========== PROGRAMME D'ENTRAINEMENT ==========
 
-function generateCustomProgram(level, dailyMinutes) {
-
-    function getDailyMinutesFromTime(timeString) {
+function getDailyMinutesFromTime(timeString) {
   switch(timeString) {
     case '1h': return 60;
     case '2h': return 120;
@@ -1256,7 +1254,7 @@ function generateCustomProgram(level, dailyMinutes) {
   }
 }
 
-     function renderWeeklyProgram() {
+function renderWeeklyProgram() {
   if (!activeChar) return;
   
   const programBox = document.getElementById('weeklyProgram');
@@ -1336,6 +1334,8 @@ function generateCustomProgram(level, dailyMinutes) {
   
   programBox.innerHTML = programHTML;
 }
+
+function generateCustomProgram(level, dailyMinutes) {
 
   // Programmes réalistes par niveau avec focus spécifique
   const realisticPrograms = {
