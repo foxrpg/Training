@@ -1020,7 +1020,39 @@ function updateWelcomeStats() {
   document.getElementById('totalAchievements').textContent = totalAchievements;
 }
 
-// ========== GESTION DES PERSONNAGES AVEC FIREBASE ==========
+// ========== GESTION DES PERSONNAGES ==========
+
+function loginCharacter(charIndex) {
+  if (charIndex === undefined || charIndex === null || charIndex < 0) {
+    console.error("❌ Index de personnage invalide:", charIndex);
+    return;
+  }
+  
+  if (!characters[charIndex]) {
+    console.error("❌ Personnage non trouvé à l'index:", charIndex);
+    return;
+  }
+  
+  activeChar = characters[charIndex];
+  localStorage.setItem('fox7d-active', activeChar.id);
+  
+  document.getElementById('navProfile').style.display = 'block';
+  
+  refresh();
+  renderLog();
+  renderAchievements();
+  renderWeeklyProgram();
+  checkGoalAchievement();
+  
+  showPage('game');
+  
+  console.log("✅ Personnage connecté, Firebase prêt pour le chat");
+}
+
+function saveChars() {
+  localStorage.setItem('fox7d-chars', JSON.stringify(characters));
+  updateWelcomeStats();
+}
 
 async function createCharacter() {
     const name = document.getElementById('charName').value.trim();
@@ -1034,7 +1066,7 @@ async function createCharacter() {
     try {
         // Vérifier si le nom existe déjà (dans Firebase)
         const snapshot = await db.collection("characters")
-            .where("name", "==", name.toLowerCase())
+            .where("nameLower", "==", name.toLowerCase())
             .get();
             
         if (!snapshot.empty) {
@@ -1045,12 +1077,12 @@ async function createCharacter() {
         const newChar = {
             id: Date.now().toString(),
             name: name,
-            nameLower: name.toLowerCase(), // Pour les recherches
+            nameLower: name.toLowerCase(),
             avatar: document.getElementById('charAvatar').value,
             level: document.getElementById('charLevel').value,
             goal: document.getElementById('charGoal').value,
             time: document.getElementById('charTime').value,
-            pwd: pwd, // ⚠️ En production, il faudrait hasher le mot de passe
+            pwd: pwd,
             theme: document.getElementById('themeColor').value,
             quote: document.getElementById('charQuote').value,
             gender: document.getElementById('charGender').value,
@@ -1066,7 +1098,7 @@ async function createCharacter() {
         
         // Mettre à jour localement aussi
         characters.push(newChar);
-        localStorage.setItem('fox7d-chars', JSON.stringify(characters));
+        saveChars();
         
         const charIndex = characters.findIndex(c => c.id === newChar.id);
         loginCharacter(charIndex);
@@ -1075,7 +1107,31 @@ async function createCharacter() {
         
     } catch (error) {
         console.error("Erreur création personnage:", error);
-        alert("Erreur lors de la création du personnage");
+        // Fallback local
+        const newChar = {
+            id: Date.now().toString(),
+            name: name,
+            avatar: document.getElementById('charAvatar').value,
+            level: document.getElementById('charLevel').value,
+            goal: document.getElementById('charGoal').value,
+            time: document.getElementById('charTime').value,
+            pwd: pwd,
+            theme: document.getElementById('themeColor').value,
+            quote: document.getElementById('charQuote').value,
+            gender: document.getElementById('charGender').value,
+            style: document.getElementById('charStyle').value,
+            xp: 0,
+            achievements: [],
+            created: new Date().toISOString()
+        };
+        
+        characters.push(newChar);
+        saveChars();
+        
+        const charIndex = characters.findIndex(c => c.id === newChar.id);
+        loginCharacter(charIndex);
+        
+        alert("Personnage créé avec succès (mode local) !");
     }
 }
 
@@ -1156,6 +1212,7 @@ async function migrateCharacterToFirebase(character) {
     try {
         await db.collection("characters").doc(character.id).set({
             ...character,
+            nameLower: character.name.toLowerCase(),
             lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         });
         console.log("Personnage migré vers Firebase:", character.name);
@@ -1486,6 +1543,7 @@ function goalAchieved() {
     document.getElementById('goalAchievedBtn').style.display = 'none';
   }
 }
+
 async function renderRanking() {
     const rankTable = document.getElementById('rankTable').querySelector('tbody');
     rankTable.innerHTML = '<tr><td colspan="5">Chargement...</td></tr>';
@@ -1651,6 +1709,7 @@ async function addLogEntry() {
     renderLog();
     document.getElementById('logForm').reset();
 }
+
 function renderLog() {
   if (!activeChar) return;
   
@@ -1951,9 +2010,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Charger les données locales
-    loadChars();
-    
     // Easter eggs
     let foxClicks = 0;
     const activeEmoji = document.getElementById('activeEmoji');
@@ -1972,163 +2028,18 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => document.body.style.filter = 'none', 1500);
     };
     
-    // Initialiser Firebase en arrière-plan (sans bloquer)
-    setTimeout(() => {
-        initializeFirebase().then(() => {
-            console.log("✅ Firebase prêt pour le chat");
-        }).catch(error => {
-            console.warn("⚠️ Firebase non disponible, mais l'application locale fonctionne");
-        });
-    }, 1000);
+    // 🔥 CORRECTION : Initialiser Firebase IMMÉDIATEMENT avant de charger les chars
+    initializeFirebase().then(() => {
+        console.log("✅ Firebase initialisé avec succès !");
+        // Maintenant charger les personnages (avec données Firebase)
+        loadChars();
+    }).catch(error => {
+        console.warn("⚠️ Firebase non disponible, utilisation du mode local");
+        // Charger en mode local seulement
+        loadChars();
+    });
     
     console.log("✅ Fox RPG initialisé !");
-});
-// ========== CHAT ==========
-
-function toggleChat() {
-  const chatbox = document.getElementById('chatbox');
-  chatVisible = !chatVisible;
-  
-  if (chatVisible) {
-    chatbox.classList.add('active');
-    if (activeChar) {
-      setupChatListener();
-    } else {
-      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
-    }
-  } else {
-    chatbox.classList.remove('active');
-  }
-}
-
-function setupChatListener() {
-  if (!activeChar) {
-    document.getElementById('chatMessages').innerHTML = '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
-    return;
-  }
-  
-  if (!firebaseInitialized) {
-    document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Initialisation du chat...</div>';
-    initializeFirebase().then(() => {
-      setTimeout(setupChatListener, 1000);
-    });
-    return;
-  }
-  
-  try {
-    const chatRef = db.collection("chat");
-    const q = chatRef.orderBy("timestamp", "asc");
-    
-    q.onSnapshot((snapshot) => {
-      const chatMessages = document.getElementById('chatMessages');
-      chatMessages.innerHTML = '';
-      
-      snapshot.forEach((doc) => {
-        const message = doc.data();
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'chat-message';
-        
-        let timeString = 'Maintenant';
-        if (message.timestamp && message.timestamp.toDate) {
-          timeString = message.timestamp.toDate().toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-        }
-        
-        messageDiv.innerHTML = `
-          <div class="message-header">
-            <span class="message-user">${message.user || 'Anonyme'}</span>
-            <span class="message-time">${timeString}</span>
-          </div>
-          <div>${message.text || ''}</div>
-        `;
-        chatMessages.appendChild(messageDiv);
-      });
-      
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    });
-    
-  } catch (error) {
-    console.error("Erreur chat:", error);
-    document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Erreur de connexion au chat</div>';
-  }
-}
-
-async function sendMessage() {
-  if (!activeChar || !firebaseInitialized) {
-    alert(trad[lang].chatConnect);
-    return;
-  }
-  
-  const chatInput = document.getElementById('chatInput');
-  const message = chatInput.value.trim();
-  
-  if (!message) return;
-  
-  try {
-    await db.collection("chat").add({
-      user: activeChar.name,
-      text: message,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      avatar: activeChar.avatar
-    });
-    
-    chatInput.value = '';
-    
-  } catch (error) {
-    console.error("Erreur envoi message:", error);
-    alert(trad[lang].messageError);
-  }
-}
-
-// ========== INITIALISATION ==========
-
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("🎮 Fox RPG - Initialisation...");
-  
-  // Événements de base
-  document.getElementById('logForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    addLogEntry();
-  });
-  
-  const chatInput = document.getElementById('chatInput');
-  if (chatInput) {
-    chatInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
-    });
-  }
-  
-  // Fonctions de base
-  loadChars();
-  
-  // Easter eggs
-  let foxClicks = 0;
-  const activeEmoji = document.getElementById('activeEmoji');
-  if (activeEmoji) {
-    activeEmoji.onclick = () => {
-      foxClicks++;
-      if (foxClicks === 7) { 
-        alert("🦊 : Tu es un vrai renard ! Continue à t'entraîner !"); 
-        foxClicks = 0; 
-      }
-    };
-  }
-  
-  document.getElementById('mainTitle').ondblclick = () => {
-    document.body.style.filter = 'invert(1)';
-    setTimeout(() => document.body.style.filter = 'none', 1500);
-  };
-  
-  // Initialiser Firebase mais ne pas bloquer l'application
-  initializeFirebase().catch(error => {
-    console.warn("Firebase non disponible, mais l'application fonctionne:", error);
-  });
-  
-  console.log("✅ Fox RPG initialisé !");
 });
 </script>
 </body>
