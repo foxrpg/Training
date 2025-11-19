@@ -1008,19 +1008,13 @@ function setLang(l) {
 }
 
 function updateWelcomeStats() {
-  const totalPlayers = characters.length;
-  const totalGames = characters.reduce((sum, char) => {
-    const charData = JSON.parse(localStorage.getItem('fox7d-' + char.id) || '{}');
-    return sum + Object.values(charData).reduce((games, entry) => games + (entry.games || 0), 0);
-  }, 0);
-  const totalAchievements = characters.reduce((sum, char) => sum + (char.achievements ? char.achievements.length : 0), 0);
-  
-  document.getElementById('totalPlayers').textContent = totalPlayers;
-  document.getElementById('totalGames').textContent = totalGames;
-  document.getElementById('totalAchievements').textContent = totalAchievements;
+  // Ces stats viennent maintenant de Firebase
+  document.getElementById('totalPlayers').textContent = characters.length;
+  document.getElementById('totalGames').textContent = characters.reduce((sum, char) => sum + char.xp / 10, 0);
+  document.getElementById('totalAchievements').textContent = characters.reduce((sum, char) => sum + (char.achievements ? char.achievements.length : 0), 0);
 }
 
-// ========== GESTION DES PERSONNAGES ==========
+// ========== GESTION DES PERSONNAGES - FIREBASE UNIQUEMENT ==========
 
 function loginCharacter(charIndex) {
   if (charIndex === undefined || charIndex === null || charIndex < 0) {
@@ -1046,12 +1040,7 @@ function loginCharacter(charIndex) {
   
   showPage('game');
   
-  console.log("✅ Personnage connecté, Firebase prêt pour le chat");
-}
-
-function saveChars() {
-  localStorage.setItem('fox7d-chars', JSON.stringify(characters));
-  updateWelcomeStats();
+  console.log("✅ Personnage connecté");
 }
 
 async function createCharacter() {
@@ -1064,7 +1053,7 @@ async function createCharacter() {
     }
     
     try {
-        // Vérifier si le nom existe déjà (dans Firebase)
+        // Vérifier si le nom existe déjà dans Firebase
         const snapshot = await db.collection("characters")
             .where("nameLower", "==", name.toLowerCase())
             .get();
@@ -1093,12 +1082,11 @@ async function createCharacter() {
             lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        // Sauvegarder dans Firebase
+        // Sauvegarder UNIQUEMENT dans Firebase
         await db.collection("characters").doc(newChar.id).set(newChar);
         
-        // Mettre à jour localement aussi
+        // Ajouter au tableau local pour l'affichage immédiat
         characters.push(newChar);
-        saveChars();
         
         const charIndex = characters.findIndex(c => c.id === newChar.id);
         loginCharacter(charIndex);
@@ -1107,31 +1095,7 @@ async function createCharacter() {
         
     } catch (error) {
         console.error("Erreur création personnage:", error);
-        // Fallback local
-        const newChar = {
-            id: Date.now().toString(),
-            name: name,
-            avatar: document.getElementById('charAvatar').value,
-            level: document.getElementById('charLevel').value,
-            goal: document.getElementById('charGoal').value,
-            time: document.getElementById('charTime').value,
-            pwd: pwd,
-            theme: document.getElementById('themeColor').value,
-            quote: document.getElementById('charQuote').value,
-            gender: document.getElementById('charGender').value,
-            style: document.getElementById('charStyle').value,
-            xp: 0,
-            achievements: [],
-            created: new Date().toISOString()
-        };
-        
-        characters.push(newChar);
-        saveChars();
-        
-        const charIndex = characters.findIndex(c => c.id === newChar.id);
-        loginCharacter(charIndex);
-        
-        alert("Personnage créé avec succès (mode local) !");
+        alert("Erreur lors de la création du personnage: " + error.message);
     }
 }
 
@@ -1145,7 +1109,7 @@ async function loginUser() {
     }
     
     try {
-        // Chercher dans Firebase d'abord
+        // Chercher UNIQUEMENT dans Firebase
         const snapshot = await db.collection("characters")
             .where("nameLower", "==", username.toLowerCase())
             .where("pwd", "==", password)
@@ -1160,75 +1124,30 @@ async function loginUser() {
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            // Vérifier si le personnage existe localement, sinon l'ajouter
+            // Trouver l'index dans le tableau local
             let charIndex = characters.findIndex(c => c.id === characterData.id);
             if (charIndex === -1) {
+                // Ajouter au tableau local si pas déjà présent
                 characters.push(characterData);
-                saveChars();
                 charIndex = characters.length - 1;
             } else {
-                // Mettre à jour les données locales avec celles de Firebase
+                // Mettre à jour les données locales
                 characters[charIndex] = characterData;
-                saveChars();
             }
             
             loginCharacter(charIndex);
             
         } else {
-            // Vérifier en local (pour compatibilité)
-            const localCharacter = characters.find(char => 
-                char.name.toLowerCase() === username.toLowerCase() && char.pwd === password
-            );
-            
-            if (localCharacter) {
-                const charIndex = characters.findIndex(c => c.id === localCharacter.id);
-                loginCharacter(charIndex);
-                
-                // Migrer vers Firebase
-                await migrateCharacterToFirebase(localCharacter);
-                
-            } else {
-                alert(trad[lang].wrongCredentials);
-            }
+            alert(trad[lang].wrongCredentials);
         }
         
     } catch (error) {
         console.error("Erreur connexion:", error);
-        // Fallback vers le système local
-        const localCharacter = characters.find(char => 
-            char.name.toLowerCase() === username.toLowerCase() && char.pwd === password
-        );
-        
-        if (localCharacter) {
-            const charIndex = characters.findIndex(c => c.id === localCharacter.id);
-            loginCharacter(charIndex);
-        } else {
-            alert(trad[lang].wrongCredentials);
-        }
-    }
-}
-
-async function migrateCharacterToFirebase(character) {
-    try {
-        await db.collection("characters").doc(character.id).set({
-            ...character,
-            nameLower: character.name.toLowerCase(),
-            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        console.log("Personnage migré vers Firebase:", character.name);
-    } catch (error) {
-        console.error("Erreur migration personnage:", error);
+        alert("Erreur de connexion: " + error.message);
     }
 }
 
 async function loadChars() {
-    // Charger d'abord depuis le localStorage
-    const saved = localStorage.getItem('fox7d-chars');
-    if (saved) {
-        characters = JSON.parse(saved);
-    }
-    
-    // Ensuite, essayer de charger depuis Firebase
     try {
         if (firebaseInitialized && db) {
             const snapshot = await db.collection("characters")
@@ -1237,23 +1156,24 @@ async function loadChars() {
                 .get();
                 
             if (!snapshot.empty) {
-                const firebaseChars = [];
+                characters = [];
                 snapshot.forEach(doc => {
-                    firebaseChars.push(doc.data());
+                    characters.push(doc.data());
                 });
-                
-                // Fusionner avec les caractères locaux
-                characters = mergeCharacters(characters, firebaseChars);
-                saveChars();
+                console.log(`✅ ${characters.length} personnages chargés depuis Firebase`);
+            } else {
+                console.log("ℹ️ Aucun personnage trouvé dans Firebase");
+                characters = [];
             }
         }
     } catch (error) {
-        console.warn("Impossible de charger depuis Firebase, utilisation des données locales");
+        console.error("❌ Erreur chargement Firebase:", error);
+        characters = [];
     }
     
     // Connexion automatique si personnage actif sauvegardé
     const savedActive = localStorage.getItem('fox7d-active');
-    if (savedActive) {
+    if (savedActive && characters.length > 0) {
         const activeIndex = characters.findIndex(c => c.id === savedActive);
         if (activeIndex !== -1) {
             loginCharacter(activeIndex);
@@ -1261,28 +1181,6 @@ async function loadChars() {
     }
     
     updateWelcomeStats();
-}
-
-function mergeCharacters(localChars, firebaseChars) {
-    const merged = [...localChars];
-    
-    firebaseChars.forEach(fbChar => {
-        const existingIndex = merged.findIndex(localChar => localChar.id === fbChar.id);
-        if (existingIndex === -1) {
-            // Nouveau personnage de Firebase
-            merged.push(fbChar);
-        } else {
-            // Fusionner en priorisant Firebase (données plus récentes)
-            merged[existingIndex] = {
-                ...merged[existingIndex],
-                ...fbChar,
-                // Garder certaines données locales si nécessaires
-                theme: merged[existingIndex].theme || fbChar.theme
-            };
-        }
-    });
-    
-    return merged;
 }
 
 // ========== FONCTIONS D'AFFICHAGE ==========
@@ -1305,6 +1203,8 @@ function refresh() {
 function updateProgress() {
   if (!activeChar) return;
   
+  // Pour l'instant, on utilise encore le localStorage pour le carnet
+  // Mais on pourrait migrer ça vers Firebase aussi
   const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
   const days = Object.keys(charData).length;
   const progressPercent = Math.min((days / 365) * 100, 100);
@@ -1537,7 +1437,10 @@ function goalAchieved() {
   const newGoal = prompt(trad[lang].goalCongratulations.replace('{goal}', activeChar.goal));
   if (newGoal) {
     activeChar.goal = newGoal;
-    saveChars();
+    // Sauvegarder dans Firebase
+    db.collection("characters").doc(activeChar.id).update({
+      goal: newGoal
+    });
     refresh();
     alert(trad[lang].newGoalSet.replace('{goal}', newGoal));
     document.getElementById('goalAchievedBtn').style.display = 'none';
@@ -1549,59 +1452,31 @@ async function renderRanking() {
     rankTable.innerHTML = '<tr><td colspan="5">Chargement...</td></tr>';
     
     try {
-        let rankedChars = [];
-        
-        // Essayer Firebase d'abord
-        if (firebaseInitialized && db) {
-            const snapshot = await db.collection("characters")
-                .orderBy("xp", "desc")
-                .limit(100)
-                .get();
-                
-            if (!snapshot.empty) {
-                rankedChars = [];
-                snapshot.forEach(doc => {
-                    rankedChars.push(doc.data());
-                });
-            }
-        }
-        
-        // Fallback sur les données locales si Firebase échoue ou pas de données
-        if (rankedChars.length === 0) {
-            rankedChars = [...characters].sort((a, b) => b.xp - a.xp);
-        }
-        
+        const snapshot = await db.collection("characters")
+            .orderBy("xp", "desc")
+            .limit(100)
+            .get();
+            
         rankTable.innerHTML = '';
         
-        rankedChars.forEach((char, index) => {
+        let rank = 1;
+        snapshot.forEach((doc) => {
+            const char = doc.data();
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${index + 1}</td>
+                <td>${rank}</td>
                 <td>${char.avatar}</td>
                 <td>${char.name}</td>
                 <td>${char.xp}</td>
                 <td>${char.level}</td>
             `;
             rankTable.appendChild(row);
+            rank++;
         });
         
     } catch (error) {
         console.error("Erreur chargement classement:", error);
-        // Fallback local
-        const sortedChars = [...characters].sort((a, b) => b.xp - a.xp);
-        rankTable.innerHTML = '';
-        
-        sortedChars.forEach((char, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${char.avatar}</td>
-                <td>${char.name}</td>
-                <td>${char.xp}</td>
-                <td>${char.level}</td>
-            `;
-            rankTable.appendChild(row);
-        });
+        rankTable.innerHTML = '<tr><td colspan="5">Erreur de chargement</td></tr>';
     }
 }
 
@@ -1615,6 +1490,7 @@ function renderProfile() {
   document.getElementById('profileXP').textContent = activeChar.xp;
   document.getElementById('profileGoal').textContent = activeChar.goal;
   
+  // Pour l'instant, on utilise encore le localStorage pour ces données
   const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
   document.getElementById('profileDays').textContent = Object.keys(charData).length;
   document.getElementById('profileAchievements').textContent = activeChar.achievements ? activeChar.achievements.length : 0;
@@ -1628,7 +1504,10 @@ function updateProfileTheme() {
   
   const newColor = document.getElementById('profileThemeColor').value;
   activeChar.theme = newColor;
-  saveChars();
+  // Sauvegarder dans Firebase
+  db.collection("characters").doc(activeChar.id).update({
+    theme: newColor
+  });
   document.getElementById('colorPreview').style.background = newColor;
   document.documentElement.style.setProperty('--rouge', newColor);
 }
@@ -1685,10 +1564,12 @@ async function addLogEntry() {
         activeChar.xp = newXp;
         
     } catch (error) {
-        console.error("Erreur sauvegarde Firebase, sauvegarde locale seulement:", error);
+        console.error("Erreur sauvegarde Firebase:", error);
+        alert("Erreur de sauvegarde: " + error.message);
+        return;
     }
     
-    // Sauvegarde locale (toujours faite)
+    // Sauvegarde locale du carnet (optionnel)
     const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
     charData[day] = {
         games: games,
@@ -1701,8 +1582,6 @@ async function addLogEntry() {
     };
     
     localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
-    activeChar.xp += xpGain;
-    saveChars();
     
     checkAchievements(charData);
     refresh();
@@ -1770,14 +1649,26 @@ function checkAchievements(charData) {
     { id: '30_days', condition: totalDays >= 30 }
   ];
   
+  let newAchievements = [];
+  
   achievementsToCheck.forEach(ach => {
     if (ach.condition && activeChar.achievements && !activeChar.achievements.includes(ach.id)) {
       activeChar.achievements.push(ach.id);
-      alert(trad[lang].achievementUnlocked + ach.id);
+      newAchievements.push(ach.id);
     }
   });
   
-  saveChars();
+  if (newAchievements.length > 0) {
+    // Sauvegarder les nouveaux succès dans Firebase
+    db.collection("characters").doc(activeChar.id).update({
+      achievements: activeChar.achievements
+    });
+    
+    newAchievements.forEach(achId => {
+      alert(trad[lang].achievementUnlocked + achId);
+    });
+  }
+  
   renderAchievements();
 }
 
@@ -1785,9 +1676,13 @@ function resetData() {
   if (confirm(trad[lang].confirmReset)) {
     if (activeChar) {
       localStorage.removeItem('fox7d-' + activeChar.id);
+      // Réinitialiser XP et succès dans Firebase
+      db.collection("characters").doc(activeChar.id).update({
+        xp: 0,
+        achievements: []
+      });
       activeChar.xp = 0;
       activeChar.achievements = [];
-      saveChars();
       refresh();
       renderLog();
       renderAchievements();
@@ -1795,7 +1690,7 @@ function resetData() {
   }
 }
 
-// ========== FIREBASE - VERSION FINALE CORRIGÉE ==========
+// ========== FIREBASE - VERSION SIMPLIFIÉE ==========
 
 let firebaseInitializationPromise = null;
 
@@ -1879,7 +1774,7 @@ function initializeFirebase() {
     return firebaseInitializationPromise;
 }
 
-// ========== CHAT - VERSION CORRIGÉE ==========
+// ========== CHAT ==========
 
 function toggleChat() {
     const chatbox = document.getElementById('chatbox');
@@ -1990,7 +1885,7 @@ async function sendMessage() {
     }
 }
 
-// ========== INITIALISATION CORRIGÉE ==========
+// ========== INITIALISATION ==========
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🎮 Fox RPG - Initialisation...");
@@ -2028,15 +1923,14 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => document.body.style.filter = 'none', 1500);
     };
     
-    // 🔥 CORRECTION : Initialiser Firebase IMMÉDIATEMENT avant de charger les chars
+    // 🔥 INITIALISATION FIREBASE IMMÉDIATE
     initializeFirebase().then(() => {
         console.log("✅ Firebase initialisé avec succès !");
-        // Maintenant charger les personnages (avec données Firebase)
+        // Charger les personnages depuis Firebase
         loadChars();
     }).catch(error => {
-        console.warn("⚠️ Firebase non disponible, utilisation du mode local");
-        // Charger en mode local seulement
-        loadChars();
+        console.error("❌ Firebase non disponible:", error);
+        alert("L'application nécessite une connexion Internet pour fonctionner.");
     });
     
     console.log("✅ Fox RPG initialisé !");
