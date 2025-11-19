@@ -1246,6 +1246,97 @@ function renderAchievements() {
 // ========== PROGRAMME D'ENTRAINEMENT ==========
 
 function generateCustomProgram(level, dailyMinutes) {
+
+    function getDailyMinutesFromTime(timeString) {
+  switch(timeString) {
+    case '1h': return 60;
+    case '2h': return 120;
+    case '3h+': return 180;
+    default: return 60;
+  }
+}
+
+     function renderWeeklyProgram() {
+  if (!activeChar) return;
+  
+  const programBox = document.getElementById('weeklyProgram');
+  const trainingTime = activeChar.time;
+  const dailyMinutes = getDailyMinutesFromTime(trainingTime);
+  const customProgram = generateCustomProgram(activeChar.level, dailyMinutes);
+  
+  let programHTML = `
+    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong>📊 ${lang === 'fr' ? 'Programme personnalisé pour' : 'Custom program for'} ${activeChar.name}</strong>
+        <div style="font-size: 0.9rem; opacity: 0.8;">
+          ${lang === 'fr' ? 'Niveau' : 'Level'}: ${activeChar.level} → ${activeChar.goal} | ${lang === 'fr' ? 'Temps' : 'Time'}: ${trainingTime}/${lang === 'fr' ? 'jour' : 'day'}
+        </div>
+      </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      <div style="background: rgba(255,0,60,0.1); padding: 1rem; border-radius: var(--radius); border-left: 4px solid var(--rouge);">
+        <div style="font-weight: bold; margin-bottom: 0.5rem;">🧠 ${lang === 'fr' ? 'Fuseki' : 'Opening'}</div>
+        <div style="font-size: 0.85rem; opacity: 0.9;">${customProgram.focusAreas.fuseki}</div>
+      </div>
+      <div style="background: rgba(0,255,136,0.1); padding: 1rem; border-radius: var(--radius); border-left: 4px solid #00ff88;">
+        <div style="font-weight: bold; margin-bottom: 0.5rem;">⚡ ${lang === 'fr' ? 'Chuban' : 'Middle Game'}</div>
+        <div style="font-size: 0.85rem; opacity: 0.9;">${customProgram.focusAreas.chuban}</div>
+      </div>
+      <div style="background: rgba(100,150,255,0.1); padding: 1rem; border-radius: var(--radius); border-left: 4px solid #6496ff;">
+        <div style="font-weight: bold; margin-bottom: 0.5rem;">📊 ${lang === 'fr' ? 'Yose' : 'Endgame'}</div>
+        <div style="font-size: 0.85rem; opacity: 0.9;">${customProgram.focusAreas.yose}</div>
+      </div>
+    </div>
+  `;
+  
+  customProgram.days.forEach((day, index) => {
+    const isToday = index === new Date().getDay() - 1;
+    programHTML += `
+      <div class="program-day ${isToday ? 'current' : ''}">
+        <div class="day-header">
+          <span>${day.name}</span>
+          <span style="font-size: 0.8rem; opacity: 0.7;">${day.totalTime}</span>
+        </div>
+        <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.8rem;">${day.focus}</div>
+        ${day.activities.map(activity => `
+          <div class="activity">
+            <div class="activity-icon">${activity.icon}</div>
+            <div style="flex: 1;">${activity.description}</div>
+            <div style="font-size: 0.8rem; opacity: 0.7;">${activity.time}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  });
+  
+  programHTML += `
+    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius); text-align: center;">
+      <div style="margin-bottom: 0.5rem; font-weight: bold;">📈 ${lang === 'fr' ? 'Statistiques Hebdomadaires' : 'Weekly Statistics'}</div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
+        <div>
+          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalGames}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Parties' : 'Games'}</div>
+        </div>
+        <div>
+          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalTsumego}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Tsumegos' : 'Tsumegos'}</div>
+        </div>
+        <div>
+          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalTime}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Heures' : 'Hours'}</div>
+        </div>
+        <div>
+          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.weeklyReviews}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Révisions' : 'Reviews'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  programBox.innerHTML = programHTML;
+}
+
   // Programmes réalistes par niveau avec focus spécifique
   const realisticPrograms = {
     // DÉBUTANTS (10k-7k) : Focus sur les bases
@@ -1408,87 +1499,6 @@ function generateCustomProgram(level, dailyMinutes) {
   };
 
   const config = realisticPrograms[level] || realisticPrograms['10k'];
-
-  function renderWeeklyProgram() {
-  if (!activeChar) return;
-  
-  const programBox = document.getElementById('weeklyProgram');
-  const trainingTime = activeChar.time;
-  const dailyMinutes = getDailyMinutesFromTime(trainingTime);
-  const customProgram = generateCustomProgram(activeChar.level, dailyMinutes);
-  
-  let programHTML = `
-    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius);">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong>📊 ${lang === 'fr' ? 'Programme personnalisé pour' : 'Custom program for'} ${activeChar.name}</strong>
-        <div style="font-size: 0.9rem; opacity: 0.8;">
-          ${lang === 'fr' ? 'Niveau' : 'Level'}: ${activeChar.level} → ${activeChar.goal} | ${lang === 'fr' ? 'Temps' : 'Time'}: ${trainingTime}/${lang === 'fr' ? 'jour' : 'day'}
-        </div>
-      </div>
-    </div>
-    
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-      <div style="background: rgba(255,0,60,0.1); padding: 1rem; border-radius: var(--radius); border-left: 4px solid var(--rouge);">
-        <div style="font-weight: bold; margin-bottom: 0.5rem;">🧠 ${lang === 'fr' ? 'Fuseki' : 'Opening'}</div>
-        <div style="font-size: 0.85rem; opacity: 0.9;">${customProgram.focusAreas.fuseki}</div>
-      </div>
-      <div style="background: rgba(0,255,136,0.1); padding: 1rem; border-radius: var(--radius); border-left: 4px solid #00ff88;">
-        <div style="font-weight: bold; margin-bottom: 0.5rem;">⚡ ${lang === 'fr' ? 'Chuban' : 'Middle Game'}</div>
-        <div style="font-size: 0.85rem; opacity: 0.9;">${customProgram.focusAreas.chuban}</div>
-      </div>
-      <div style="background: rgba(100,150,255,0.1); padding: 1rem; border-radius: var(--radius); border-left: 4px solid #6496ff;">
-        <div style="font-weight: bold; margin-bottom: 0.5rem;">📊 ${lang === 'fr' ? 'Yose' : 'Endgame'}</div>
-        <div style="font-size: 0.85rem; opacity: 0.9;">${customProgram.focusAreas.yose}</div>
-      </div>
-    </div>
-  `;
-  
-  customProgram.days.forEach((day, index) => {
-    const isToday = index === new Date().getDay() - 1;
-    programHTML += `
-      <div class="program-day ${isToday ? 'current' : ''}">
-        <div class="day-header">
-          <span>${day.name}</span>
-          <span style="font-size: 0.8rem; opacity: 0.7;">${day.totalTime}</span>
-        </div>
-        <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.8rem;">${day.focus}</div>
-        ${day.activities.map(activity => `
-          <div class="activity">
-            <div class="activity-icon">${activity.icon}</div>
-            <div style="flex: 1;">${activity.description}</div>
-            <div style="font-size: 0.8rem; opacity: 0.7;">${activity.time}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  });
-  
-  programHTML += `
-    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius); text-align: center;">
-      <div style="margin-bottom: 0.5rem; font-weight: bold;">📈 ${lang === 'fr' ? 'Statistiques Hebdomadaires' : 'Weekly Statistics'}</div>
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
-        <div>
-          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalGames}</div>
-          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Parties' : 'Games'}</div>
-        </div>
-        <div>
-          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalTsumego}</div>
-          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Tsumegos' : 'Tsumegos'}</div>
-        </div>
-        <div>
-          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.totalTime}</div>
-          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Heures' : 'Hours'}</div>
-        </div>
-        <div>
-          <div style="font-size: 1.2rem; font-weight: bold; color: var(--rouge);">${customProgram.weeklyReviews}</div>
-          <div style="font-size: 0.8rem; opacity: 0.7;">${lang === 'fr' ? 'Révisions' : 'Reviews'}</div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  programBox.innerHTML = programHTML;
-}
 
   function getDailyMinutesFromTime(timeString) {
   switch(timeString) {
