@@ -1254,6 +1254,24 @@ function getDailyMinutesFromTime(timeString) {
   }
 }
 
+// Fonctions utilitaires pour des temps réalistes
+function getRealisticTime(minutes) {
+  if (minutes <= 60) return '45-60min';
+  if (minutes <= 120) return '1h30-2h';
+  return '2h30+';
+}
+
+function getGameTime(gamesCount, dailyMinutes) {
+  const avgGameTime = 20; // 20 minutes par partie en moyenne
+  const totalGameTime = gamesCount * avgGameTime;
+  
+  // Ne pas dépasser 70% du temps total pour les parties
+  const maxGameTime = dailyMinutes * 0.7;
+  
+  const realisticTime = Math.min(totalGameTime, maxGameTime);
+  return `${Math.round(realisticTime)}min`;
+}
+
 function renderWeeklyProgram() {
   if (!activeChar) return;
   
@@ -1336,7 +1354,6 @@ function renderWeeklyProgram() {
 }
 
 function generateCustomProgram(level, dailyMinutes) {
-
   // Programmes réalistes par niveau avec focus spécifique
   const realisticPrograms = {
     // DÉBUTANTS (10k-7k) : Focus sur les bases
@@ -1499,15 +1516,6 @@ function generateCustomProgram(level, dailyMinutes) {
   };
 
   const config = realisticPrograms[level] || realisticPrograms['10k'];
-
-  function getDailyMinutesFromTime(timeString) {
-  switch(timeString) {
-    case '1h': return 60;
-    case '2h': return 120;
-    case '3h+': return 180;
-    default: return 60;
-  }
-}
   
   // Ajuster selon le temps disponible
   let timeFactor;
