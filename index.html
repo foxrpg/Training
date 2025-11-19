@@ -964,9 +964,8 @@ const trad = {
   }
 };
 
-// ========== FONCTIONS PRINCIPALES ==========
+// ========== FONCTIONS DE BASE ==========
 
-// Navigation entre pages
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(name).classList.add('active');
@@ -982,13 +981,9 @@ function showPage(name) {
   }
 }
 
-// Gestion de la langue
 function setLang(l) {
   lang = l;
-  
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-  
-  // Activer le bon bouton - méthode plus robuste
   document.querySelectorAll('.lang-btn').forEach(btn => {
     if (btn.textContent.includes(l === 'fr' ? 'Français' : 'English')) {
       btn.classList.add('active');
@@ -1012,7 +1007,6 @@ function setLang(l) {
   if (activeChar) renderWeeklyProgram();
 }
 
-// Page d'accueil - statistiques
 function updateWelcomeStats() {
   const totalPlayers = characters.length;
   const totalGames = characters.reduce((sum, char) => {
@@ -1026,8 +1020,8 @@ function updateWelcomeStats() {
   document.getElementById('totalAchievements').textContent = totalAchievements;
 }
 
-// Connexion d'un personnage
-// Connexion utilisateur
+// ========== GESTION DES PERSONNAGES ==========
+
 function loginUser() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
@@ -1052,6 +1046,7 @@ function loginUser() {
     alert(trad[lang].wrongCredentials);
   }
 }
+
 function loginCharacter(charIndex) {
   if (charIndex === undefined || charIndex === null || charIndex < 0) {
     console.error("❌ Index de personnage invalide:", charIndex);
@@ -1063,7 +1058,7 @@ function loginCharacter(charIndex) {
     return;
   }
   
-  activeChar = characters[charIndex];  // <-- UNE SEULE FOIS avec charIndex
+  activeChar = characters[charIndex];
   localStorage.setItem('fox7d-active', activeChar.id);
   
   document.getElementById('navProfile').style.display = 'block';
@@ -1076,11 +1071,9 @@ function loginCharacter(charIndex) {
   
   showPage('game');
   
-  // Firebase est déjà initialisé au chargement de la page
-// Pas besoin de le réinitialiser ici
-console.log("✅ Firebase prêt pour le chat");
+  console.log("✅ Personnage connecté, Firebase prêt pour le chat");
+}
 
-// Créer un personnage
 function createCharacter() {
   const name = document.getElementById('charName').value.trim();
   const pwd = document.getElementById('charPwd').value;
@@ -1114,8 +1107,13 @@ function createCharacter() {
   
   characters.push(newChar);
   saveChars();
+  
+  const charIndex = characters.findIndex(c => c.id === newChar.id);
+  loginCharacter(charIndex);
+  
+  alert("Personnage créé avec succès !");
+}
 
-  // Charger les personnages
 function loadChars() {
   const saved = localStorage.getItem('fox7d-chars');
   if (saved) {
@@ -1131,19 +1129,13 @@ function loadChars() {
   }
 }
 
-// Sauvegarder les personnages
 function saveChars() {
   localStorage.setItem('fox7d-chars', JSON.stringify(characters));
   updateWelcomeStats();
 }
-  
-  const charIndex = characters.findIndex(c => c.id === newChar.id);
-  loginCharacter(charIndex);
-  
-  alert("Personnage créé avec succès !");
-}
 
-// Rafraîchir l'interface
+// ========== FONCTIONS D'AFFICHAGE ==========
+
 function refresh() {
   if (!activeChar) return;
   
@@ -1159,7 +1151,6 @@ function refresh() {
   updateProgress();
 }
 
-// Mettre à jour la progression
 function updateProgress() {
   if (!activeChar) return;
   
@@ -1174,7 +1165,6 @@ function updateProgress() {
   document.getElementById('goalText').textContent = trad[lang].goalText + activeChar.goal + ' Fox';
 }
 
-// Afficher les succès
 function renderAchievements() {
   if (!activeChar) return;
   
@@ -1202,17 +1192,14 @@ function renderAchievements() {
   });
 }
 
-// PROGRAMME D'ENTRAINEMENT PERSONNALISÉ
+// ========== PROGRAMME D'ENTRAINEMENT ==========
+
 function renderWeeklyProgram() {
   if (!activeChar) return;
   
   const programBox = document.getElementById('weeklyProgram');
-  
-  // Récupérer le temps d'entraînement
   const trainingTime = activeChar.time;
   const dailyMinutes = getDailyMinutesFromTime(trainingTime);
-  
-  // Générer le programme personnalisé
   const customProgram = generateCustomProgram(activeChar.level, dailyMinutes);
   
   let programHTML = `
@@ -1226,7 +1213,6 @@ function renderWeeklyProgram() {
     </div>
   `;
   
-  // Ajouter chaque jour
   customProgram.days.forEach((day, index) => {
     const isToday = index === new Date().getDay() - 1;
     programHTML += `
@@ -1246,7 +1232,6 @@ function renderWeeklyProgram() {
     `;
   });
   
-  // Statistiques hebdomadaires
   programHTML += `
     <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius); text-align: center;">
       <div style="margin-bottom: 0.5rem; font-weight: bold;">📈 ${lang === 'fr' ? 'Statistiques Hebdomadaires' : 'Weekly Statistics'}</div>
@@ -1303,9 +1288,7 @@ function generateCustomProgram(level, dailyMinutes) {
   };
   
   const config = levels[level] || levels['10k'];
-  
-  // Adapter selon le temps disponible
-  const timeFactor = dailyMinutes / 60; // 1h = facteur 1, 2h = facteur 2, etc.
+  const timeFactor = dailyMinutes / 60;
   const adjustedGames = Math.round(config.games * timeFactor);
   const adjustedTsumego = Math.round(config.tsumego * timeFactor);
   
@@ -1383,13 +1366,11 @@ function generateCustomProgram(level, dailyMinutes) {
   };
 }
 
-// Vérifier si l'objectif est atteint
 function checkGoalAchievement() {
   if (!activeChar) return;
   
   const currentLevel = activeChar.level;
   const goalLevel = activeChar.goal;
-  
   const levels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
   const currentIndex = levels.indexOf(currentLevel);
   const goalIndex = levels.indexOf(goalLevel);
@@ -1401,7 +1382,6 @@ function checkGoalAchievement() {
   }
 }
 
-// Objectif atteint
 function goalAchieved() {
   const newGoal = prompt(trad[lang].goalCongratulations.replace('{goal}', activeChar.goal));
   if (newGoal) {
@@ -1413,7 +1393,6 @@ function goalAchieved() {
   }
 }
 
-// Afficher le classement
 function renderRanking() {
   const rankTable = document.getElementById('rankTable').querySelector('tbody');
   rankTable.innerHTML = '';
@@ -1433,7 +1412,6 @@ function renderRanking() {
   });
 }
 
-// Afficher le profil
 function renderProfile() {
   if (!activeChar) return;
   
@@ -1452,7 +1430,6 @@ function renderProfile() {
   document.getElementById('colorPreview').style.background = activeChar.theme || '#ff003c';
 }
 
-// Mettre à jour le thème du profil
 function updateProfileTheme() {
   if (!activeChar) return;
   
@@ -1463,11 +1440,7 @@ function updateProfileTheme() {
   document.documentElement.style.setProperty('--rouge', newColor);
 }
 
-// Gestion du carnet d'entraînement
-document.getElementById('logForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  addLogEntry();
-});
+// ========== GESTION DU CARNET ==========
 
 function addLogEntry() {
   if (!activeChar) return;
@@ -1497,15 +1470,12 @@ function addLogEntry() {
   };
   
   localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
-  
   activeChar.xp += games * 10 + tsu * 2 + Math.floor(time / 10);
   saveChars();
   
   checkAchievements(charData);
-  
   refresh();
   renderLog();
-  
   document.getElementById('logForm').reset();
 }
 
@@ -1514,7 +1484,6 @@ function renderLog() {
   
   const logbook = document.getElementById('logbook');
   const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
-  
   logbook.innerHTML = '';
   
   const sortedDays = Object.keys(charData).sort((a, b) => b - a);
@@ -1595,138 +1564,255 @@ function resetData() {
   }
 }
 
-// ========== INITIALISATION FIREBASE CORRIGÉE ==========
+// ========== FIREBASE - VERSION FINALE CORRIGÉE ==========
+
 let firebaseInitializationPromise = null;
 
 function initializeFirebase() {
-  // Éviter les initialisations multiples
-  if (firebaseInitializationPromise) {
-    return firebaseInitializationPromise;
-  }
-  
-  firebaseInitializationPromise = new Promise((resolve, reject) => {
-    console.log("🚀 INITIALISATION FIREBASE - DÉBUT");
-    
-    if (firebaseInitialized) {
-      console.log("✅ Firebase déjà initialisé");
-      resolve(true);
-      return;
+    if (firebaseInitializationPromise) {
+        return firebaseInitializationPromise;
     }
     
-    // Vérifier si Firebase est déjà initialisé
-    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-      console.log("✅ Firebase déjà initialisé dans la page");
-      db = firebase.firestore();
-      firebaseInitialized = true;
-      resolve(true);
-      return;
-    }
-    
-    console.log("📦 Chargement des scripts Firebase...");
-    
-    // Vérifier si les scripts sont déjà en cours de chargement
-    if (document.querySelector('script[src*="firebase-app.js"]')) {
-      console.log("⚠️ Scripts Firebase déjà en cours de chargement");
-      // Attendre que les scripts se chargent
-      const checkInterval = setInterval(() => {
-        if (typeof firebase !== 'undefined' && typeof firebase.firestore !== 'undefined') {
-          clearInterval(checkInterval);
-          initFirebaseApp();
-          resolve(true);
+    firebaseInitializationPromise = new Promise((resolve, reject) => {
+        console.log("🚀 Initialisation de Firebase...");
+        
+        // Si Firebase est déjà initialisé
+        if (firebaseInitialized && db) {
+            console.log("✅ Firebase déjà initialisé");
+            resolve(true);
+            return;
         }
-      }, 100);
-      return;
-    }
-    
-    // Charger Firebase App
-    const script1 = document.createElement('script');
-    script1.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js";
-    script1.onload = () => {
-      console.log("✅ firebase-app.js chargé");
-      
-      // Charger Firestore
-      const script2 = document.createElement('script');
-      script2.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js";
-      script2.onload = () => {
-        console.log("✅ firebase-firestore.js chargé");
-        initFirebaseApp();
-        resolve(true);
-      };
-      script2.onerror = () => {
-        console.error("❌ Erreur chargement firestore");
-        reject(new Error('Failed to load firebase-firestore.js'));
-      };
-      document.head.appendChild(script2);
-    };
-    script1.onerror = () => {
-      console.error("❌ Erreur chargement firebase");
-      reject(new Error('Failed to load firebase-app.js'));
-    };
-    document.head.appendChild(script1);
-  });
-  
-  return firebaseInitializationPromise;
-}
-
-function initFirebaseApp() {
-  try {
-    console.log("🔄 Initialisation de l'app Firebase...");
-    
-    const firebaseConfig = {
-      apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
-      authDomain: "fox-rpg-406d6.firebaseapp.com",
-      projectId: "fox-rpg-406d6",
-      storageBucket: "fox-rpg-406d6.firebasestorage.app",
-      messagingSenderId: "218915576778",
-      appId: "1:218915576778:web:8b03757d20b8451e428d33"
-    };
-    
-    // Vérifier une dernière fois avant d'initialiser
-    if (firebase.apps.length > 0) {
-      console.log("✅ Utilisation de l'app Firebase existante");
-      db = firebase.firestore();
-    } else {
-      console.log("✅ Création d'une nouvelle app Firebase");
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-    }
-    
-    firebaseInitialized = true;
-    console.log("🔥 Firebase initialisé avec succès !");
-    
-    // Tester la connexion
-    testFirebaseConnection();
-    
-  } catch (error) {
-    console.error("❌ Erreur initialisation Firebase:", error);
-    firebaseInitialized = false;
-  }
-}
-
-function testFirebaseConnection() {
-  if (!db) {
-    console.log("❌ Firestore non disponible pour le test");
-    return;
-  }
-  
-  console.log("🧪 Test de connexion Firestore...");
-  
-  const testData = {
-    message: "Test de connexion Firebase - " + new Date().toISOString(),
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-    type: "connection_test",
-    randomId: Math.random().toString(36).substring(7)
-  };
-  
-  db.collection("connection_tests").add(testData)
-    .then((docRef) => {
-      console.log("✅ Test d'écriture réussi, ID:", docRef.id);
-    })
-    .catch((error) => {
-      console.error("❌ Test Firestore échoué:", error);
+        
+        // Vérifier si Firebase est déjà disponible
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            console.log("✅ Firebase déjà chargé dans la page");
+            db = firebase.firestore();
+            firebaseInitialized = true;
+            resolve(true);
+            return;
+        }
+        
+        // Charger Firebase dynamiquement
+        const script1 = document.createElement('script');
+        script1.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js";
+        
+        script1.onload = () => {
+            console.log("✅ firebase-app.js chargé");
+            
+            const script2 = document.createElement('script');
+            script2.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js";
+            
+            script2.onload = () => {
+                console.log("✅ firebase-firestore.js chargé");
+                
+                try {
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
+                        authDomain: "fox-rpg-406d6.firebaseapp.com",
+                        projectId: "fox-rpg-406d6",
+                        storageBucket: "fox-rpg-406d6.firebasestorage.app",
+                        messagingSenderId: "218915576778",
+                        appId: "1:218915576778:web:8b03757d20b8451e428d33"
+                    };
+                    
+                    // Initialiser Firebase
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    firebaseInitialized = true;
+                    
+                    console.log("🔥 Firebase initialisé avec succès !");
+                    resolve(true);
+                    
+                } catch (error) {
+                    console.error("❌ Erreur initialisation Firebase:", error);
+                    reject(error);
+                }
+            };
+            
+            script2.onerror = () => {
+                console.error("❌ Erreur chargement Firestore");
+                reject(new Error('Firestore loading failed'));
+            };
+            
+            document.head.appendChild(script2);
+        };
+        
+        script1.onerror = () => {
+            console.error("❌ Erreur chargement Firebase App");
+            reject(new Error('Firebase App loading failed'));
+        };
+        
+        document.head.appendChild(script1);
     });
+    
+    return firebaseInitializationPromise;
 }
-// ========== FONCTIONS CHAT SIMPLIFIÉES ==========
+
+// ========== CHAT - VERSION CORRIGÉE ==========
+
+function toggleChat() {
+    const chatbox = document.getElementById('chatbox');
+    chatVisible = !chatVisible;
+    
+    if (chatVisible) {
+        chatbox.classList.add('active');
+        if (activeChar) {
+            setupChatListener();
+        } else {
+            document.getElementById('chatMessages').innerHTML = '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
+        }
+    } else {
+        chatbox.classList.remove('active');
+    }
+}
+
+function setupChatListener() {
+    if (!activeChar) {
+        document.getElementById('chatMessages').innerHTML = '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
+        return;
+    }
+    
+    if (!firebaseInitialized) {
+        document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Initialisation du chat...</div>';
+        initializeFirebase().then(() => {
+            setTimeout(setupChatListener, 1000);
+        }).catch(error => {
+            document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Chat temporairement indisponible</div>';
+        });
+        return;
+    }
+    
+    try {
+        console.log("Configuration de l'écoute du chat...");
+        
+        const chatRef = db.collection("chat");
+        const q = chatRef.orderBy("timestamp", "asc");
+        
+        q.onSnapshot((snapshot) => {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+            
+            snapshot.forEach((doc) => {
+                const message = doc.data();
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message';
+                
+                let timeString = 'Maintenant';
+                if (message.timestamp && message.timestamp.toDate) {
+                    timeString = message.timestamp.toDate().toLocaleTimeString('fr-FR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                }
+                
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-user">${message.user || 'Anonyme'}</span>
+                        <span class="message-time">${timeString}</span>
+                    </div>
+                    <div>${message.text || ''}</div>
+                `;
+                chatMessages.appendChild(messageDiv);
+            });
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, (error) => {
+            console.error("Erreur écoute chat:", error);
+            document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Erreur de connexion au chat</div>';
+        });
+        
+    } catch (error) {
+        console.error("Erreur configuration chat:", error);
+        document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Impossible de charger le chat</div>';
+    }
+}
+
+async function sendMessage() {
+    if (!activeChar) {
+        alert(trad[lang].chatConnect);
+        return;
+    }
+    
+    if (!firebaseInitialized) {
+        alert("Chat en cours d'initialisation...");
+        return;
+    }
+    
+    const chatInput = document.getElementById('chatInput');
+    const message = chatInput.value.trim();
+    
+    if (!message) return;
+    
+    try {
+        await db.collection("chat").add({
+            user: activeChar.name,
+            text: message,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            avatar: activeChar.avatar
+        });
+        
+        chatInput.value = '';
+        
+    } catch (error) {
+        console.error("Erreur envoi message:", error);
+        alert(trad[lang].messageError);
+    }
+}
+
+// ========== INITIALISATION CORRIGÉE ==========
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🎮 Fox RPG - Initialisation...");
+    
+    // Événements de base
+    document.getElementById('logForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        addLogEntry();
+    });
+    
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    }
+    
+    // Charger les données locales
+    loadChars();
+    
+    // Easter eggs
+    let foxClicks = 0;
+    const activeEmoji = document.getElementById('activeEmoji');
+    if (activeEmoji) {
+        activeEmoji.onclick = () => {
+            foxClicks++;
+            if (foxClicks === 7) { 
+                alert("🦊 : Tu es un vrai renard ! Continue à t'entraîner !"); 
+                foxClicks = 0; 
+            }
+        };
+    }
+    
+    document.getElementById('mainTitle').ondblclick = () => {
+        document.body.style.filter = 'invert(1)';
+        setTimeout(() => document.body.style.filter = 'none', 1500);
+    };
+    
+    // Initialiser Firebase en arrière-plan (sans bloquer)
+    setTimeout(() => {
+        initializeFirebase().then(() => {
+            console.log("✅ Firebase prêt pour le chat");
+        }).catch(error => {
+            console.warn("⚠️ Firebase non disponible, mais l'application locale fonctionne");
+        });
+    }, 1000);
+    
+    console.log("✅ Fox RPG initialisé !");
+});
+// ========== CHAT ==========
+
 function toggleChat() {
   const chatbox = document.getElementById('chatbox');
   chatVisible = !chatVisible;
@@ -1736,7 +1822,7 @@ function toggleChat() {
     if (activeChar) {
       setupChatListener();
     } else {
-      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Connecte-toi avec un personnage pour chatter !</div>';
+      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
     }
   } else {
     chatbox.classList.remove('active');
@@ -1745,38 +1831,23 @@ function toggleChat() {
 
 function setupChatListener() {
   if (!activeChar) {
-    console.log("❌ Pas de personnage actif");
-    document.getElementById('chatMessages').innerHTML = 
-      '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
+    document.getElementById('chatMessages').innerHTML = '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
     return;
   }
   
-if (!firebaseInitialized || !db) {
-  console.log("❌ Firebase pas encore prêt, réessayez dans quelques secondes");
-  document.getElementById('chatMessages').innerHTML = 
-    '<div class="chat-message">Chat en cours de chargement... Réessayez.</div>';
-  return;
-}
-    
+  if (!firebaseInitialized) {
+    document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Initialisation du chat...</div>';
     initializeFirebase().then(() => {
-      // Rappeler setupChatListener une fois Firebase prêt
-      setTimeout(setupChatListener, 500);
+      setTimeout(setupChatListener, 1000);
     });
-    return;
-  }
-  if (!firebaseInitialized || !activeChar) {
-    console.log("❌ Firebase non initialisé ou pas de personnage");
-    document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Chat non disponible</div>';
     return;
   }
   
   try {
-    console.log("🔍 Configuration de l\'écoute du chat...");
-    
     const chatRef = db.collection("chat");
     const q = chatRef.orderBy("timestamp", "asc");
     
-    const unsubscribe = q.onSnapshot((snapshot) => {
+    q.onSnapshot((snapshot) => {
       const chatMessages = document.getElementById('chatMessages');
       chatMessages.innerHTML = '';
       
@@ -1785,7 +1856,6 @@ if (!firebaseInitialized || !db) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'chat-message';
         
-        // Formater la date
         let timeString = 'Maintenant';
         if (message.timestamp && message.timestamp.toDate) {
           timeString = message.timestamp.toDate().toLocaleTimeString('fr-FR', { 
@@ -1804,18 +1874,12 @@ if (!firebaseInitialized || !db) {
         chatMessages.appendChild(messageDiv);
       });
       
-      // Scroll vers le bas
       chatMessages.scrollTop = chatMessages.scrollHeight;
-    }, (error) => {
-      console.error("❌ Erreur écoute chat:", error);
-      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Erreur de connexion au chat</div>';
     });
     
-    console.log("✅ Écoute du chat activée");
-    
   } catch (error) {
-    console.error("❌ Erreur configuration chat:", error);
-    document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Impossible de charger le chat</div>';
+    console.error("Erreur chat:", error);
+    document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Erreur de connexion au chat</div>';
   }
 }
 
@@ -1828,13 +1892,9 @@ async function sendMessage() {
   const chatInput = document.getElementById('chatInput');
   const message = chatInput.value.trim();
   
-  if (!message) {
-    return;
-  }
+  if (!message) return;
   
   try {
-    console.log("📤 Envoi du message...");
-    
     await db.collection("chat").add({
       user: activeChar.name,
       text: message,
@@ -1843,21 +1903,24 @@ async function sendMessage() {
     });
     
     chatInput.value = '';
-    console.log("✅ Message envoyé avec succès");
     
   } catch (error) {
-    console.error("❌ Erreur envoi message:", error);
-    alert(trad[lang].messageError + error.message);
+    console.error("Erreur envoi message:", error);
+    alert(trad[lang].messageError);
   }
 }
 
+// ========== INITIALISATION ==========
 
- // Initialiser l'application
-
-initializeFirebase();
-
-// Initialisation
 document.addEventListener('DOMContentLoaded', function() {
+  console.log("🎮 Fox RPG - Initialisation...");
+  
+  // Événements de base
+  document.getElementById('logForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    addLogEntry();
+  });
+  
   const chatInput = document.getElementById('chatInput');
   if (chatInput) {
     chatInput.addEventListener('keypress', function(e) {
@@ -1867,13 +1930,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  document.getElementById('logForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    addLogEntry();
-  });
+  // Fonctions de base
+  loadChars();
   
-  loadChars();  // ← MAINTENANT loadChars est définie
-  
+  // Easter eggs
   let foxClicks = 0;
   const activeEmoji = document.getElementById('activeEmoji');
   if (activeEmoji) {
@@ -1891,26 +1951,13 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => document.body.style.filter = 'none', 1500);
   };
   
-  const notesInput = document.getElementById('notes');
-  if (notesInput) {
-    notesInput.addEventListener('input', e => {
-      if (e.target.value.toLowerCase().includes('fox')) {
-        const span = document.createElement('span');
-        span.textContent = '🦊';
-        span.style.position = 'absolute';
-        span.style.fontSize = '2rem';
-        span.style.pointerEvents = 'none';
-        span.style.animation = 'fadeOut 2s forwards';
-        document.body.appendChild(span);
-        setTimeout(() => span.remove(), 2000);
-      }
-    });
-  }
+  // Initialiser Firebase mais ne pas bloquer l'application
+  initializeFirebase().catch(error => {
+    console.warn("Firebase non disponible, mais l'application fonctionne:", error);
+  });
   
-  initializeFirebase();
+  console.log("✅ Fox RPG initialisé !");
 });
-
 </script>
 </body>
 </html>
-
