@@ -9,8 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
   <style>
       /* Ajouter dans la section CSS */
-#navCreateBtn 
-    .prog-line{
+.prog-line{
       display:flex;
       align-items:center;
       justify-content:center;
@@ -536,11 +535,12 @@
 <!-- NAVIGATION PRINCIPALE -->
 <div class="frame" style="display:flex;gap:1rem;flex-wrap:wrap;">
   <button onclick="showPage('welcome')"><span id="navHome">Accueil</span></button>
+    <button onclick="showPage('game')" id="navGame" style="display:none;">🎮 Jeu</button>
   <button onclick="showPage('login')" id="navLoginBtn"><span id="navLogin">Connexion</span></button>
   <button onclick="showPage('create')"><span id="navCreate">Créer un personnage</span></button>
   <button onclick="showPage('ranking')"><span id="navRank">Classement</span></button>
   <button onclick="showPage('profile')" id="navProfile" style="display:none;">👤 Profil</button>
-  <button onclick="showPage('game')" id="navGame" style="display:none;">🎮 Jeu</button>
+
 </div>
 
 <!-- PAGE 1 : ACCUEIL -->
@@ -1124,19 +1124,6 @@ function loginCharacter(charIndex) {
   console.log("✅ Personnage connecté");
 }
   
-  // Mettre à jour la navigation
-  updateNavigation();
-  
-  refresh();
-  renderLog();
-  renderAchievements();
-  renderWeeklyProgram();
-  checkGoalAchievement();
-  
-  showPage('game');
-  
-  console.log("✅ Personnage connecté");
-
 async function createCharacter() {
     const name = document.getElementById('charName').value.trim();
     const pwd = document.getElementById('charPwd').value;
@@ -1363,6 +1350,22 @@ function getDailyMinutesFromTime(timeString) {
   }
 }
 
+function getDailyMinutesFromTime(timeString) {
+  switch(timeString) {
+    case '1h': return 60;
+    case '2h': return 120;
+    case '3h+': return 180;
+    default: return 60;
+  }
+}
+
+// Fonctions utilitaires pour des temps réalistes
+function getRealisticTime(minutes) {
+  if (minutes <= 60) return '45-60min';
+  if (minutes <= 120) return '1h30-2h';
+  return '2h30+';
+}
+
 // Fonctions utilitaires pour des temps réalistes
 function getRealisticTime(minutes) {
   if (minutes <= 60) return '45-60min';
@@ -1384,11 +1387,12 @@ function getGameTime(gamesCount, dailyMinutes) {
 function renderWeeklyProgram() {
   if (!activeChar) return;
   
+  console.log("🎯 Rendu programme pour:", activeChar.name, "Niveau:", activeChar.level, "Temps:", activeChar.time);
+  
   const programBox = document.getElementById('weeklyProgram');
   const trainingTime = activeChar.time;
   const dailyMinutes = getDailyMinutesFromTime(trainingTime);
   const customProgram = generateCustomProgram(activeChar.level, dailyMinutes);
-  
   let programHTML = `
     <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius);">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1463,6 +1467,8 @@ function renderWeeklyProgram() {
 }
 
 function generateCustomProgram(level, dailyMinutes) {
+  console.log("🔍 Génération programme pour:", level, "avec", dailyMinutes, "minutes");
+  
   const programs = {
     "10k-5k": {
       60: { // 1h
@@ -1587,6 +1593,8 @@ function generateCustomProgram(level, dailyMinutes) {
   } else {
     console.warn(`Configuration non trouvée pour ${range}/${timeKey}min, utilisation des valeurs par défaut`);
   }
+
+    console.log("⚙️ Configuration utilisée:", config);
 
   // GÉNÉRATION DU PROGRAMME HEBDO
   const days = [
