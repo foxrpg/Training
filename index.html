@@ -1418,7 +1418,7 @@ function generateCustomProgram(level, dailyMinutes) {
         dailyTsumego: 10,
         weeklyReview: 1,
         fusekiFocus: "Placement 3-4 / 4-4, joseki simples",
-        chubanFocus: "Connexions, formes de base, vie & mort",
+        chubanFocus: "Connexions, formes de base, vie & mort", 
         yoseFocus: "Yose 1-2 points, sente vs gote"
       },
       120: { // 2h
@@ -1444,7 +1444,7 @@ function generateCustomProgram(level, dailyMinutes) {
         dailyTsumego: 15,
         weeklyReview: 1,
         fusekiFocus: "Direction globale, joseki 4-4",
-        chubanFocus: "Tesuji simples, attaques efficaces",
+        chubanFocus: "Tesuji simples, attaques efficaces", 
         yoseFocus: "Yose 2-3 points, comptage"
       },
       120: {
@@ -1478,7 +1478,7 @@ function generateCustomProgram(level, dailyMinutes) {
         dailyTsumego: 30,
         weeklyReview: 3,
         fusekiFocus: "Fuseki influence, contre-joseki",
-        chubanFocus: "Lecture 20+ coups, sacrifice avancé",
+        chubanFocus: "Lecture 20+ coups, sacrifice avancé", 
         yoseFocus: "Yose de ko, fin de partie parfaite"
       },
       180: {
@@ -1492,21 +1492,38 @@ function generateCustomProgram(level, dailyMinutes) {
     }
   };
 
-  // Détermination de la tranche
+  // DÉTERMINATION DE LA TRANCHE AVEC GESTION D'ERREUR
   const levels = ["10k", "9k", "8k", "7k", "6k", "5k", "4k", "3k", "2k", "1k", "1d", "2d", "3d", "4d", "5d", "6d", "7d", "8d", "9d"];
   const index = levels.indexOf(level);
+  
+  // Valeurs par défaut si niveau non trouvé
   let range = "10k-5k";
-  if (index >= levels.indexOf("5k")) range = "5k-1k";
-  if (index >= levels.indexOf("1d")) range = "1d-5d";
+  if (index === -1) {
+    console.warn("Niveau non reconnu:", level, "- utilisation du programme 10k-5k par défaut");
+  } else if (index >= levels.indexOf("1d")) {
+    range = "1d-5d";
+  } else if (index >= levels.indexOf("5k")) {
+    range = "5k-1k";
+  }
 
-  // Détermination du palier temps
+  // DÉTERMINATION DU PALIER TEMPS
   let timeKey = 60;
   if (dailyMinutes >= 180) timeKey = 180;
   else if (dailyMinutes >= 120) timeKey = 120;
 
-  const config = programs[range][timeKey];
+  // CONFIGURATION AVEC VALEURS PAR DÉFAUT
+  const defaultConfig = {
+    dailyGames: 2,
+    dailyTsumego: 10,
+    weeklyReview: 1,
+    fusekiFocus: "Fuseki de base",
+    chubanFocus: "Jeu milieu de partie",
+    yoseFocus: "Fin de partie"
+  };
 
-  // Génération du programme hebdo
+  const config = programs[range]?.[timeKey] || defaultConfig;
+
+  // GÉNÉRATION DU PROGRAMME HEBDO
   const days = [
     {
       name: lang === 'fr' ? "LUNDI - FUSEKI" : "MONDAY - FUSEKI",
@@ -1515,7 +1532,8 @@ function generateCustomProgram(level, dailyMinutes) {
         { icon: "🧠", desc: lang === 'fr' ? "Étude fuseki" : "Fuseki study", time: "25min" },
         { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties fuseki' : 'fuseki games'}`, time: "30min" },
         { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos joseki' : 'joseki tsumegos'}`, time: "20min" }
-      ]
+      ],
+      totalTime: getRealisticTime(dailyMinutes)
     },
     {
       name: lang === 'fr' ? "MARDI - CHUBAN" : "TUESDAY - MIDDLE GAME",
@@ -1524,7 +1542,8 @@ function generateCustomProgram(level, dailyMinutes) {
         { icon: "⚡", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties chuban' : 'middle games'}`, time: "40min" },
         { icon: "🤖", desc: lang === 'fr' ? "Analyse AI chuban" : "AI middle game review", time: "20min" },
         { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos combat' : 'fighting tsumegos'}`, time: "20min" }
-      ]
+      ],
+      totalTime: getRealisticTime(dailyMinutes)
     },
     {
       name: lang === 'fr' ? "MERCREDI - YOSE" : "WEDNESDAY - ENDGAME",
@@ -1533,7 +1552,8 @@ function generateCustomProgram(level, dailyMinutes) {
         { icon: "📊", desc: lang === 'fr' ? "Étude yose" : "Yose study", time: "25min" },
         { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties yose' : 'yose games'}`, time: "30min" },
         { icon: "📚", desc: lang === 'fr' ? "Exercices comptage" : "Counting drills", time: "15min" }
-      ]
+      ],
+      totalTime: getRealisticTime(dailyMinutes)
     },
     {
       name: lang === 'fr' ? "JEUDI - REVUE" : "THURSDAY - REVIEW",
@@ -1542,7 +1562,8 @@ function generateCustomProgram(level, dailyMinutes) {
         { icon: "🔍", desc: lang === 'fr' ? "Revue 1 partie complète" : "Full game review", time: "30min" },
         { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties appliquées' : 'applied games'}`, time: "30min" },
         { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos révision' : 'review tsumegos'}`, time: "20min" }
-      ]
+      ],
+      totalTime: getRealisticTime(dailyMinutes)
     },
     {
       name: lang === 'fr' ? "VENDREDI - INTENSIF" : "FRIDAY - INTENSIVE",
@@ -1551,7 +1572,8 @@ function generateCustomProgram(level, dailyMinutes) {
         { icon: "🏆", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties longues' : 'long games'}`, time: "60min" },
         { icon: "🤖", desc: lang === 'fr' ? "Analyse AI approfondie" : "Deep AI analysis", time: "30min" },
         { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos difficiles' : 'hard tsumegos'}`, time: "20min" }
-      ]
+      ],
+      totalTime: getRealisticTime(dailyMinutes)
     },
     {
       name: lang === 'fr' ? "SAMEDI - LIBRE" : "SATURDAY - FREE",
@@ -1560,7 +1582,8 @@ function generateCustomProgram(level, dailyMinutes) {
         { icon: "🎨", desc: lang === 'fr' ? "Parties créatives" : "Creative games", time: "40min" },
         { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos fun' : 'fun tsumegos'}`, time: "20min" },
         { icon: "📺", desc: lang === 'fr' ? "Vidéo pro ou stream" : "Pro video or stream", time: "20min" }
-      ]
+      ],
+      totalTime: getRealisticTime(dailyMinutes)
     },
     {
       name: lang === 'fr' ? "DIMANCHE - PLANIFICATION" : "SUNDAY - PLANNING",
@@ -1569,7 +1592,8 @@ function generateCustomProgram(level, dailyMinutes) {
         { icon: "📈", desc: lang === 'fr' ? "Bilan de la semaine" : "Weekly review", time: "30min" },
         { icon: "🎯", desc: lang === 'fr' ? "Objectifs semaine prochaine" : "Next week goals", time: "15min" },
         { icon: "🧘", desc: lang === 'fr' ? "Partie détente" : "Relaxed game", time: "30min" }
-      ]
+      ],
+      totalTime: getRealisticTime(dailyMinutes)
     }
   ];
 
@@ -1577,38 +1601,14 @@ function generateCustomProgram(level, dailyMinutes) {
     days,
     totalGames: config.dailyGames * 7,
     totalTsumego: config.dailyTsumego * 7,
-    totalTime: dailyMinutes * 7,
-    weeklyReviews: config.weeklyReview
+    totalTime: Math.round(dailyMinutes * 7 / 60), // en heures
+    weeklyReviews: config.weeklyReview,
+    focusAreas: {
+      fuseki: config.fusekiFocus,
+      chuban: config.chubanFocus,
+      yose: config.yoseFocus
+    }
   };
-}
-function checkGoalAchievement() {
-  if (!activeChar) return;
-  
-  const currentLevel = activeChar.level;
-  const goalLevel = activeChar.goal;
-  const levels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
-  const currentIndex = levels.indexOf(currentLevel);
-  const goalIndex = levels.indexOf(goalLevel);
-  
-  if (currentIndex >= goalIndex) {
-    document.getElementById('goalAchievedBtn').style.display = 'block';
-  } else {
-    document.getElementById('goalAchievedBtn').style.display = 'none';
-  }
-}
-
-function goalAchieved() {
-  const newGoal = prompt(trad[lang].goalCongratulations.replace('{goal}', activeChar.goal));
-  if (newGoal) {
-    activeChar.goal = newGoal;
-    // Sauvegarder dans Firebase
-    db.collection("characters").doc(activeChar.id).update({
-      goal: newGoal
-    });
-    refresh();
-    alert(trad[lang].newGoalSet.replace('{goal}', newGoal));
-    document.getElementById('goalAchievedBtn').style.display = 'none';
-  }
 }
 
 async function renderRanking() {
@@ -1773,10 +1773,10 @@ function renderLog() {
   const logbook = document.getElementById('logbook');
   logbook.innerHTML = '<div style="text-align:center;padding:2rem;">Chargement...</div>';
   
-  // Récupérer les entrées depuis Firebase
+  // MODIFIER LA REQUÊTE - enlever le orderBy timestamp si pas nécessaire
   db.collection("training_logs")
     .where("characterId", "==", activeChar.id)
-    .orderBy("timestamp", "desc")
+    // .orderBy("timestamp", "desc") // ← COMMENTEZ CETTE LIGNE TEMPORAIREMENT
     .limit(50)
     .get()
     .then((snapshot) => {
@@ -1832,7 +1832,8 @@ function renderLog() {
     })
     .catch((error) => {
       console.error("Erreur chargement carnet:", error);
-      logbook.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--rouge);">Erreur de chargement</div>';
+      // Solution de secours : charger depuis le localStorage
+      loadFromLocalStorage();
     });
 }
 
@@ -2168,6 +2169,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
 
 
 
