@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fox RPG Beta Test</title>
@@ -532,10 +534,11 @@
 <!-- NAVIGATION PRINCIPALE -->
 <div class="frame" style="display:flex;gap:1rem;flex-wrap:wrap;">
   <button onclick="showPage('welcome')"><span id="navHome">Accueil</span></button>
-  <button onclick="showPage('login')"><span id="navLogin">Connexion</span></button>
+  <button onclick="showPage('login')" id="navLoginBtn"><span id="navLogin">Connexion</span></button>
   <button onclick="showPage('create')"><span id="navCreate">Créer un personnage</span></button>
   <button onclick="showPage('ranking')"><span id="navRank">Classement</span></button>
   <button onclick="showPage('profile')" id="navProfile" style="display:none;">👤 Profil</button>
+  <button onclick="showPage('game')" id="navGame" style="display:none;">🎮 Jeu</button>
 </div>
 
 <!-- PAGE 1 : ACCUEIL -->
@@ -742,6 +745,20 @@
       </div>
     </div>
 
+       <!-- NOUVEAU : MODIFICATION DU TEMPS D'ÉTUDE -->
+<div class="color-picker" style="margin-top: 1.5rem;">
+  <div style="flex:1;">
+    <label id="trainTimeLabelProfile">Temps d'étude quotidien</label>
+    <select id="profileTrainTime" style="width:100%;margin-top:.5rem;padding:.7rem;" onchange="updateTrainTime()">
+      <option value="1h">1 h</option>
+      <option value="2h">2 h</option>
+      <option value="3h+">3 h ou plus</option>
+    </select>
+    <div style="font-size:.8rem;opacity:.7;margin-top:.5rem;" id="currentTimeInfo">
+      Temps actuel : 1h - Programme recalculé automatiquement
+    </div>
+  </div>
+</div>
     <div style="text-align:center;margin-top:2rem;">
       <button onclick="showPage('game')" class="btn-primary">
         <span id="backToGameBtn">🎮 Retour au Jeu</span>
@@ -930,7 +947,8 @@ const trad = {
     credentialsRequired: "Veuillez entrer un nom d'utilisateur et un mot de passe", wrongCredentials: "Identifiants incorrects",
     goalCongratulations: "Félicitations ! Vous avez atteint votre objectif {goal} !\nEntrez votre nouvel objectif (ex: 5d, 7d, etc.) :",
     newGoalSet: "Nouvel objectif défini : {goal} !", achievementUnlocked: "Succès débloqué : ",
-    chatConnect: "Connecte-toi avec un personnage pour chatter !", messageError: "Erreur d'envoi du message"
+    chatConnect: "Connecte-toi avec un personnage pour chatter !", messageError: "Erreur d'envoi du message",
+    trainTimeLabelProfile: "Temps d'étude quotidien",
   },
   en: {
     navHome: "Home", navLogin: "Login", navCreate: "Create Character", navRank: "Leaderboard", navProfile: "👤 Profile",
@@ -960,7 +978,8 @@ const trad = {
     credentialsRequired: "Please enter username and password", wrongCredentials: "Wrong credentials",
     goalCongratulations: "Congratulations! You achieved your goal {goal}!\nEnter your new goal (ex: 5d, 7d, etc.):",
     newGoalSet: "New goal set: {goal}!", achievementUnlocked: "Achievement unlocked: ",
-    chatConnect: "Connect with a character to chat!", messageError: "Message sending error"
+    chatConnect: "Connect with a character to chat!", messageError: "Message sending error",
+    trainTimeLabelProfile: "Daily study time",
   }
 };
 
@@ -1016,6 +1035,46 @@ function updateWelcomeStats() {
 
 // ========== GESTION DES PERSONNAGES - FIREBASE UNIQUEMENT ==========
 
+  // ========== GESTION DU TEMPS D'ÉTUDE ==========
+
+function updateTrainTime() {
+  if (!activeChar) return;
+  
+  const newTime = document.getElementById('profileTrainTime').value;
+  activeChar.time = newTime;
+  
+  // Sauvegarder dans Firebase
+  db.collection("characters").doc(activeChar.id).update({
+    time: newTime
+  });
+  
+  // Mettre à jour l'affichage
+  document.getElementById('currentTimeInfo').textContent = 
+    `Temps actuel : ${newTime} - Programme recalculé automatiquement`;
+  
+  // Recalculer le programme
+  renderWeeklyProgram();
+  
+  alert("Temps d'étude mis à jour ! Le programme a été recalculé.");
+}
+
+function updateNavigation() {
+  const loginBtn = document.getElementById('navLoginBtn');
+  const gameBtn = document.getElementById('navGame');
+  const profileBtn = document.getElementById('navProfile');
+  
+  if (activeChar) {
+    // Utilisateur connecté : afficher Jeu et Profil, masquer Connexion
+    loginBtn.style.display = 'none';
+    gameBtn.style.display = 'block';
+    profileBtn.style.display = 'block';
+  } else {
+    // Utilisateur non connecté : afficher Connexion, masquer Jeu et Profil
+    loginBtn.style.display = 'block';
+    gameBtn.style.display = 'none';
+    profileBtn.style.display = 'none';
+  }
+}
 function loginCharacter(charIndex) {
   if (charIndex === undefined || charIndex === null || charIndex < 0) {
     console.error("❌ Index de personnage invalide:", charIndex);
@@ -1028,9 +1087,9 @@ function loginCharacter(charIndex) {
   }
   
   activeChar = characters[charIndex];
-  localStorage.setItem('fox7d-active', activeChar.id);
   
-  document.getElementById('navProfile').style.display = 'block';
+  // Mettre à jour la navigation
+  updateNavigation();
   
   refresh();
   renderLog();
@@ -1042,7 +1101,6 @@ function loginCharacter(charIndex) {
   
   console.log("✅ Personnage connecté");
 }
-
 async function createCharacter() {
     const name = document.getElementById('charName').value.trim();
     const pwd = document.getElementById('charPwd').value;
@@ -1171,14 +1229,8 @@ async function loadChars() {
         characters = [];
     }
     
-    // Connexion automatique si personnage actif sauvegardé
-    const savedActive = localStorage.getItem('fox7d-active');
-    if (savedActive && characters.length > 0) {
-        const activeIndex = characters.findIndex(c => c.id === savedActive);
-        if (activeIndex !== -1) {
-            loginCharacter(activeIndex);
-        }
-    }
+    // Mettre à jour la navigation
+    updateNavigation();
     
     updateWelcomeStats();
 }
@@ -1203,19 +1255,24 @@ function refresh() {
 function updateProgress() {
   if (!activeChar) return;
   
-  // Pour l'instant, on utilise encore le localStorage pour le carnet
-  // Mais on pourrait migrer ça vers Firebase aussi
-  const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
-  const days = Object.keys(charData).length;
-  const progressPercent = Math.min((days / 365) * 100, 100);
-  
-  document.getElementById('progressFill').style.width = progressPercent + '%';
-  document.getElementById('progressFill').textContent = Math.round(progressPercent) + ' %';
-  document.getElementById('dayLabel').textContent = days;
-  
-  document.getElementById('goalText').textContent = trad[lang].goalText + activeChar.goal + ' Fox';
+  // Récupérer les données depuis Firebase
+  db.collection("training_logs")
+    .where("characterId", "==", activeChar.id)
+    .get()
+    .then((snapshot) => {
+      const days = snapshot.size;
+      const progressPercent = Math.min((days / 365) * 100, 100);
+      
+      document.getElementById('progressFill').style.width = progressPercent + '%';
+      document.getElementById('progressFill').textContent = Math.round(progressPercent) + ' %';
+      document.getElementById('dayLabel').textContent = days;
+      
+      document.getElementById('goalText').textContent = trad[lang].goalText + activeChar.goal + ' Fox';
+    })
+    .catch((error) => {
+      console.error("Erreur chargement progression:", error);
+    });
 }
-
 function renderAchievements() {
   if (!activeChar) return;
   
@@ -1354,416 +1411,175 @@ function renderWeeklyProgram() {
 }
 
 function generateCustomProgram(level, dailyMinutes) {
-  // Programmes réalistes par niveau avec focus spécifique
-  const realisticPrograms = {
-    // DÉBUTANTS (10k-7k) : Focus sur les bases
-    '10k': {
-      dailyGames: 2,
-      dailyTsumego: 10,
-      fusekiFocus: lang === 'fr' ? 'Placement des 3-4 et 4-4' : '3-4 and 4-4 stone placement',
-      chubanFocus: lang === 'fr' ? 'Formes de base et connexions' : 'Basic shapes and connections',
-      yoseFocus: lang === 'fr' ? 'Yose de 1-2 points' : '1-2 point yose',
-      weeklyReview: 1
+  const programs = {
+    "10k-5k": {
+      60: { // 1h
+        dailyGames: 2,
+        dailyTsumego: 10,
+        weeklyReview: 1,
+        fusekiFocus: "Placement 3-4 / 4-4, joseki simples",
+        chubanFocus: "Connexions, formes de base, vie & mort",
+        yoseFocus: "Yose 1-2 points, sente vs gote"
+      },
+      120: { // 2h
+        dailyGames: 3,
+        dailyTsumego: 20,
+        weeklyReview: 2,
+        fusekiFocus: "Joseki 3-3, approches, direction",
+        chubanFocus: "Invasion 3-3, réductions, attaques",
+        yoseFocus: "Yose de bord, comptage rapide"
+      },
+      180: { // 3h+
+        dailyGames: 4,
+        dailyTsumego: 30,
+        weeklyReview: 3,
+        fusekiFocus: "Fuseki équilibré, influence vs territoire",
+        chubanFocus: "Groupes lourds, sacrifice, compensation",
+        yoseFocus: "Yose de connexion, ko, fin de partie"
+      }
     },
-    '9k': {
-      dailyGames: 2,
-      dailyTsumego: 15,
-      fusekiFocus: lang === 'fr' ? 'Approches simples' : 'Simple approaches',
-      chubanFocus: lang === 'fr' ? 'Vie et mort élémentaire' : 'Basic life and death',
-      yoseFocus: lang === 'fr' ? 'Yose de bordure' : 'Border yose',
-      weeklyReview: 1
+    "5k-1k": {
+      60: {
+        dailyGames: 2,
+        dailyTsumego: 15,
+        weeklyReview: 1,
+        fusekiFocus: "Direction globale, joseki 4-4",
+        chubanFocus: "Tesuji simples, attaques efficaces",
+        yoseFocus: "Yose 2-3 points, comptage"
+      },
+      120: {
+        dailyGames: 3,
+        dailyTsumego: 25,
+        weeklyReview: 2,
+        fusekiFocus: "Fuseki rapide vs lent, choix stratégiques",
+        chubanFocus: "Sacrifice, réduction, influence",
+        yoseFocus: "Yose de réduction, double sente"
+      },
+      180: {
+        dailyGames: 4,
+        dailyTsumego: 35,
+        weeklyReview: 3,
+        fusekiFocus: "Fuseki pro, innovation, style personnel",
+        chubanFocus: "Lecture 15+ coups, planification",
+        yoseFocus: "Yose 0.5-1 point, comptage précis"
+      }
     },
-    '8k': {
-      dailyGames: 2,
-      dailyTsumego: 20,
-      fusekiFocus: lang === 'fr' ? 'Joseki de coin basiques' : 'Basic corner joseki',
-      chubanFocus: lang === 'fr' ? 'Invasion simple 3-3' : 'Simple 3-3 invasion',
-      yoseFocus: lang === 'fr' ? 'Sente vs gote' : 'Sente vs gote',
-      weeklyReview: 2
-    },
-    '7k': {
-      dailyGames: 3,
-      dailyTsumego: 25,
-      fusekiFocus: lang === 'fr' ? 'Direction du jeu fuseki' : 'Fuseki direction of play',
-      chubanFocus: lang === 'fr' ? 'Groupes moyens et lourds' : 'Medium and heavy groups',
-      yoseFocus: lang === 'fr' ? 'Yose de connexion' : 'Connection yose',
-      weeklyReview: 2
-    },
-    
-    // INTERMÉDIAIRES (6k-1k) : Développement stratégique
-    '6k': {
-      dailyGames: 3,
-      dailyTsumego: 30,
-      fusekiFocus: lang === 'fr' ? 'Fuseki équilibré' : 'Balanced fuseki',
-      chubanFocus: lang === 'fr' ? 'Attaque et défense' : 'Attack and defense',
-      yoseFocus: lang === 'fr' ? 'Yose de réduction' : 'Reduction yose',
-      weeklyReview: 2
-    },
-    '5k': {
-      dailyGames: 3,
-      dailyTsumego: 35,
-      fusekiFocus: lang === 'fr' ? 'Influence vs territoire' : 'Influence vs territory',
-      chubanFocus: lang === 'fr' ? 'Invasion/réduction stratégique' : 'Strategic invasion/reduction',
-      yoseFocus: lang === 'fr' ? 'Yose' : 'yose',
-      weeklyReview: 3
-    },
-    '4k': {
-      dailyGames: 4,
-      dailyTsumego: 40,
-      fusekiFocus: lang === 'fr' ? 'Fuseki à grande ouverture' : 'Large opening fuseki',
-      chubanFocus: lang === 'fr' ? 'Comptage et décisions' : 'Counting and decisions',
-      yoseFocus: lang === 'fr' ? 'Yose de ko' : 'Ko yose',
-      weeklyReview: 3
-    },
-    '3k': {
-      dailyGames: 4,
-      dailyTsumego: 45,
-      fusekiFocus: lang === 'fr' ? 'Fuseki rapide vs lent' : 'Fast vs slow fuseki',
-      chubanFocus: lang === 'fr' ? 'Sacrifice et compensation' : 'Sacrifice and compensation',
-      yoseFocus: lang === 'fr' ? 'Yose de double sente' : 'Double sente yose',
-      weeklyReview: 3
-    },
-    '2k': {
-      dailyGames: 4,
-      dailyTsumego: 50,
-      fusekiFocus: lang === 'fr' ? 'Fuseki direction globale' : 'Global direction fuseki',
-      chubanFocus: lang === 'fr' ? 'Tesuji tactiques complexes' : 'Complex tactical tesuji',
-      yoseFocus: lang === 'fr' ? 'Yose de fin de partie' : 'Endgame yose',
-      weeklyReview: 4
-    },
-    '1k': {
-      dailyGames: 5,
-      dailyTsumego: 55,
-      fusekiFocus: lang === 'fr' ? 'Fuseki professionnel' : 'Professional fuseki',
-      chubanFocus: lang === 'fr' ? 'Stratégie moyenne partie' : 'Middle game strategy',
-      yoseFocus: lang === 'fr' ? 'Yose précis 0.5-1 point' : 'Precise 0.5-1 point yose',
-      weeklyReview: 4
-    },
-    
-    // DAN (1d-9d) : Perfectionnement
-    '1d': {
-      dailyGames: 5,
-      dailyTsumego: 60,
-      fusekiFocus: lang === 'fr' ? 'Direction globale fuseki' : 'Global direction fuseki',
-      chubanFocus: lang === 'fr' ? 'Lecture profonde 20+ coups' : 'Deep reading 20+ moves',
-      yoseFocus: lang === 'fr' ? 'Yose microscopique' : 'Microscopic yose',
-      weeklyReview: 4
-    },
-    '2d': {
-      dailyGames: 5,
-      dailyTsumego: 65,
-      fusekiFocus: lang === 'fr' ? 'Fuseki créatif' : 'Creative fuseki',
-      chubanFocus: lang === 'fr' ? 'Planification stratégique' : 'Strategic planning',
-      yoseFocus: lang === 'fr' ? 'Yose avancé et comptage' : 'Advanced yose and counting',
-      weeklyReview: 5
-    },
-    '3d': {
-      dailyGames: 6,
-      dailyTsumego: 70,
-      fusekiFocus: lang === 'fr' ? 'Fuseki contre-joseki' : 'Counter-joseki fuseki',
-      chubanFocus: lang === 'fr' ? 'Influence vs territoire avancé' : 'Advanced influence vs territory',
-      yoseFocus: lang === 'fr' ? 'Yose de fin de partie complexe' : 'Complex endgame yose',
-      weeklyReview: 5
-    },
-    '4d': {
-      dailyGames: 6,
-      dailyTsumego: 75,
-      fusekiFocus: lang === 'fr' ? 'Fuseki style professionnel' : 'Professional style fuseki',
-      chubanFocus: lang === 'fr' ? 'Lecture 30+ coups' : '30+ moves reading',
-      yoseFocus: lang === 'fr' ? 'Yose de tour de ko' : 'Ko round yose',
-      weeklyReview: 5
-    },
-    '5d': {
-      dailyGames: 6,
-      dailyTsumego: 80,
-      fusekiFocus: lang === 'fr' ? 'Fuseki AI moderne' : 'Modern AI fuseki',
-      chubanFocus: lang === 'fr' ? 'Analyse professionnelle' : 'Professional analysis',
-      yoseFocus: lang === 'fr' ? 'Yose parfait' : 'Perfect yose',
-      weeklyReview: 6
-    },
-    '6d': {
-      dailyGames: 7,
-      dailyTsumego: 85,
-      fusekiFocus: lang === 'fr' ? 'Fuseki expérimental' : 'Experimental fuseki',
-      chubanFocus: lang === 'fr' ? 'Jeu créatif et intuition' : 'Creative play and intuition',
-      yoseFocus: lang === 'fr' ? 'Yose de championnat' : 'Championship yose',
-      weeklyReview: 6
-    },
-    '7d': {
-      dailyGames: 7,
-      dailyTsumego: 90,
-      fusekiFocus: lang === 'fr' ? 'Fuseki maîtrisé' : 'Mastered fuseki',
-      chubanFocus: lang === 'fr' ? 'Perfectionnement complet' : 'Complete refinement',
-      yoseFocus: lang === 'fr' ? 'Yose de niveau pro' : 'Pro level yose',
-      weeklyReview: 6
-    },
-    '8d': {
-      dailyGames: 8,
-      dailyTsumego: 95,
-      fusekiFocus: lang === 'fr' ? 'Fuseki style personnel' : 'Personal style fuseki',
-      chubanFocus: lang === 'fr' ? 'Innovation stratégique' : 'Strategic innovation',
-      yoseFocus: lang === 'fr' ? 'Yose artistique' : 'Artistic yose',
-      weeklyReview: 7
-    },
-    '9d': {
-      dailyGames: 8,
-      dailyTsumego: 100,
-      fusekiFocus: lang === 'fr' ? 'Fuseki de maître' : 'Master fuseki',
-      chubanFocus: lang === 'fr' ? 'Maîtrise totale' : 'Total mastery',
-      yoseFocus: lang === 'fr' ? 'Yose parfait 0.5 point' : 'Perfect 0.5 point yose',
-      weeklyReview: 7
+    "1d-5d": {
+      60: {
+        dailyGames: 2,
+        dailyTsumego: 20,
+        weeklyReview: 2,
+        fusekiFocus: "Joseki AI, fuseki créatif",
+        chubanFocus: "Tesuji complexes, stratégie",
+        yoseFocus: "Yose pro, microscopique"
+      },
+      120: {
+        dailyGames: 3,
+        dailyTsumego: 30,
+        weeklyReview: 3,
+        fusekiFocus: "Fuseki influence, contre-joseki",
+        chubanFocus: "Lecture 20+ coups, sacrifice avancé",
+        yoseFocus: "Yose de ko, fin de partie parfaite"
+      },
+      180: {
+        dailyGames: 4,
+        dailyTsumego: 40,
+        weeklyReview: 4,
+        fusekiFocus: "Fuseki maîtrisé, style personnel",
+        chubanFocus: "Innovation, intuition, créativité",
+        yoseFocus: "Yose 0.5 point, comptage exact"
+      }
     }
   };
 
-  const config = realisticPrograms[level] || realisticPrograms['10k'];
-  
-  // Ajuster selon le temps disponible
-  let timeFactor;
-  if (dailyMinutes <= 60) {
-    timeFactor = 0.7;
-  } else if (dailyMinutes <= 120) {
-    timeFactor = 1.0;
-  } else {
-    timeFactor = 1.3;
-  }
+  // Détermination de la tranche
+  const levels = ["10k", "9k", "8k", "7k", "6k", "5k", "4k", "3k", "2k", "1k", "1d", "2d", "3d", "4d", "5d", "6d", "7d", "8d", "9d"];
+  const index = levels.indexOf(level);
+  let range = "10k-5k";
+  if (index >= levels.indexOf("5k")) range = "5k-1k";
+  if (index >= levels.indexOf("1d")) range = "1d-5d";
 
-  const adjustedGames = Math.max(1, Math.round(config.dailyGames * timeFactor));
-  const adjustedTsumego = Math.max(5, Math.round(config.dailyTsumego * timeFactor));
-  const adjustedReview = Math.max(1, Math.round(config.weeklyReview * timeFactor));
+  // Détermination du palier temps
+  let timeKey = 60;
+  if (dailyMinutes >= 180) timeKey = 180;
+  else if (dailyMinutes >= 120) timeKey = 120;
 
-  // Programme hebdomadaire détaillé avec focus spécifiques
+  const config = programs[range][timeKey];
+
+  // Génération du programme hebdo
   const days = [
     {
-      name: lang === 'fr' ? 'LUNDI - FUSEKI' : 'MONDAY - FUSEKI',
-      totalTime: getRealisticTime(dailyMinutes),
+      name: lang === 'fr' ? "LUNDI - FUSEKI" : "MONDAY - FUSEKI",
       focus: config.fusekiFocus,
       activities: [
-        { 
-          icon: '🧠', 
-          description: `${lang === 'fr' ? 'Étude fuseki' : 'Fuseki study'}: ${config.fusekiFocus}`, 
-          time: '25min',
-          type: 'study',
-          topic: 'fuseki'
-        },
-        { 
-          icon: '🎯', 
-          description: `${adjustedGames} ${lang === 'fr' ? 'parties focus fuseki' : 'fuseki focus games'}`, 
-          time: getGameTime(adjustedGames, dailyMinutes),
-          type: 'practice',
-          topic: 'fuseki'
-        },
-        { 
-          icon: '🧩', 
-          description: `${adjustedTsumego} ${lang === 'fr' ? 'tsumegos joseki' : 'joseki tsumegos'}`, 
-          time: '20min',
-          type: 'tsumego',
-          topic: 'joseki'
-        }
+        { icon: "🧠", desc: lang === 'fr' ? "Étude fuseki" : "Fuseki study", time: "25min" },
+        { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties fuseki' : 'fuseki games'}`, time: "30min" },
+        { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos joseki' : 'joseki tsumegos'}`, time: "20min" }
       ]
     },
     {
-      name: lang === 'fr' ? 'MARDI - CHUBAN' : 'TUESDAY - MIDDLE GAME',
-      totalTime: getRealisticTime(dailyMinutes),
+      name: lang === 'fr' ? "MARDI - CHUBAN" : "TUESDAY - MIDDLE GAME",
       focus: config.chubanFocus,
       activities: [
-        { 
-          icon: '⚡', 
-          description: `${Math.floor(adjustedGames * 1.5)} ${lang === 'fr' ? 'parties rapides chuban' : 'fast middle games'}`, 
-          time: getGameTime(Math.floor(adjustedGames * 1.5), dailyMinutes),
-          type: 'practice',
-          topic: 'chuban'
-        },
-        { 
-          icon: '🤖', 
-          description: lang === 'fr' ? 'Analyse AI chuban' : 'AI middle game analysis', 
-          time: '25min',
-          type: 'analysis',
-          topic: 'chuban'
-        },
-        { 
-          icon: '🧩', 
-          description: `${adjustedTsumego} ${lang === 'fr' ? 'tsumegos combat' : 'fighting tsumegos'}`, 
-          time: '25min',
-          type: 'tsumego',
-          topic: 'fighting'
-        }
+        { icon: "⚡", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties chuban' : 'middle games'}`, time: "40min" },
+        { icon: "🤖", desc: lang === 'fr' ? "Analyse AI chuban" : "AI middle game review", time: "20min" },
+        { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos combat' : 'fighting tsumegos'}`, time: "20min" }
       ]
     },
     {
-      name: lang === 'fr' ? 'MERCREDI - YOSE' : 'WEDNESDAY - ENDGAME',
-      totalTime: getRealisticTime(dailyMinutes),
+      name: lang === 'fr' ? "MERCREDI - YOSE" : "WEDNESDAY - ENDGAME",
       focus: config.yoseFocus,
       activities: [
-        { 
-          icon: '📖', 
-          description: `${lang === 'fr' ? 'Étude yose' : 'Yose study'}: ${config.yoseFocus}`, 
-          time: '30min',
-          type: 'study',
-          topic: 'yose'
-        },
-        { 
-          icon: '🎯', 
-          description: `${adjustedGames} ${lang === 'fr' ? 'parties focus yose' : 'yose focus games'}`, 
-          time: getGameTime(adjustedGames, dailyMinutes),
-          type: 'practice',
-          topic: 'yose'
-        },
-        { 
-          icon: '📊', 
-          description: lang === 'fr' ? 'Exercices comptage yose' : 'Yose counting exercises', 
-          time: '20min',
-          type: 'practice',
-          topic: 'counting'
-        }
+        { icon: "📊", desc: lang === 'fr' ? "Étude yose" : "Yose study", time: "25min" },
+        { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties yose' : 'yose games'}`, time: "30min" },
+        { icon: "📚", desc: lang === 'fr' ? "Exercices comptage" : "Counting drills", time: "15min" }
       ]
     },
     {
-      name: lang === 'fr' ? 'JEUDI - PARTIES PRO' : 'THURSDAY - PRO GAMES',
-      totalTime: getRealisticTime(dailyMinutes),
-      focus: lang === 'fr' ? 'Analyse parties professionnelles' : 'Professional games analysis',
+      name: lang === 'fr' ? "JEUDI - REVUE" : "THURSDAY - REVIEW",
+      focus: lang === 'fr' ? "Revue de parties" : "Game review",
       activities: [
-        { 
-          icon: '🏆', 
-          description: lang === 'fr' ? 'Étude partie pro complète' : 'Complete pro game study', 
-          time: '35min',
-          type: 'study',
-          topic: 'pro_games'
-        },
-        { 
-          icon: '🎯', 
-          description: `${adjustedGames} ${lang === 'fr' ? 'parties imitation pro' : 'pro imitation games'}`, 
-          time: getGameTime(adjustedGames, dailyMinutes),
-          type: 'practice',
-          topic: 'pro_games'
-        },
-        { 
-          icon: '🤖', 
-          description: lang === 'fr' ? 'Comparaison AI vs pro' : 'AI vs pro comparison', 
-          time: '25min',
-          type: 'analysis',
-          topic: 'pro_games'
-        }
+        { icon: "🔍", desc: lang === 'fr' ? "Revue 1 partie complète" : "Full game review", time: "30min" },
+        { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties appliquées' : 'applied games'}`, time: "30min" },
+        { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos révision' : 'review tsumegos'}`, time: "20min" }
       ]
     },
     {
-      name: lang === 'fr' ? 'VENDREDI - RÉVISION' : 'FRIDAY - REVIEW',
-      totalTime: getRealisticTime(dailyMinutes),
-      focus: lang === 'fr' ? 'Révision complète' : 'Complete review',
+      name: lang === 'fr' ? "VENDREDI - INTENSIF" : "FRIDAY - INTENSIVE",
+      focus: lang === 'fr' ? "Session intensive" : "Intensive session",
       activities: [
-        { 
-          icon: '📚', 
-          description: lang === 'fr' ? 'Révision erreurs semaine' : 'Week mistakes review', 
-          time: '30min',
-          type: 'review',
-          topic: 'mistakes'
-        },
-        { 
-          icon: '🎯', 
-          description: `${adjustedGames} ${lang === 'fr' ? 'parties application' : 'application games'}`, 
-          time: getGameTime(adjustedGames, dailyMinutes),
-          type: 'practice',
-          topic: 'application'
-        },
-        { 
-          icon: '🧩', 
-          description: `${Math.floor(adjustedTsumego * 0.8)} ${lang === 'fr' ? 'tsumegos révision' : 'review tsumegos'}`, 
-          time: '20min',
-          type: 'tsumego',
-          topic: 'review'
-        }
+        { icon: "🏆", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties longues' : 'long games'}`, time: "60min" },
+        { icon: "🤖", desc: lang === 'fr' ? "Analyse AI approfondie" : "Deep AI analysis", time: "30min" },
+        { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos difficiles' : 'hard tsumegos'}`, time: "20min" }
       ]
     },
     {
-      name: lang === 'fr' ? 'SAMEDI - INTENSIF' : 'SATURDAY - INTENSIVE',
-      totalTime: getRealisticTime(dailyMinutes * 1.5),
-      focus: lang === 'fr' ? 'Session intensive complète' : 'Complete intensive session',
+      name: lang === 'fr' ? "SAMEDI - LIBRE" : "SATURDAY - FREE",
+      focus: lang === 'fr' ? "Jeu libre et créatif" : "Free and creative play",
       activities: [
-        { 
-          icon: '🏆', 
-          description: lang === 'fr' ? 'Tournoi ou parties longues' : 'Tournament or long games', 
-          time: '90min',
-          type: 'practice',
-          topic: 'tournament'
-        },
-        { 
-          icon: '🤖', 
-          description: lang === 'fr' ? 'Analyse AI approfondie' : 'Deep AI analysis', 
-          time: '40min',
-          type: 'analysis',
-          topic: 'deep_analysis'
-        },
-        { 
-          icon: '🧩', 
-          description: `${adjustedTsumego * 1.5} ${lang === 'fr' ? 'tsumegos intensifs' : 'intensive tsumegos'}`, 
-          time: '35min',
-          type: 'tsumego',
-          topic: 'intensive'
-        }
+        { icon: "🎨", desc: lang === 'fr' ? "Parties créatives" : "Creative games", time: "40min" },
+        { icon: "🧩", desc: `${config.dailyTsumego} ${lang === 'fr' ? 'tsumegos fun' : 'fun tsumegos'}`, time: "20min" },
+        { icon: "📺", desc: lang === 'fr' ? "Vidéo pro ou stream" : "Pro video or stream", time: "20min" }
       ]
     },
     {
-      name: lang === 'fr' ? 'DIMANCHE - PLANIFICATION' : 'SUNDAY - PLANNING',
-      totalTime: getRealisticTime(dailyMinutes),
-      focus: lang === 'fr' ? 'Planification et réflexion' : 'Planning and reflection',
+      name: lang === 'fr' ? "DIMANCHE - PLANIFICATION" : "SUNDAY - PLANNING",
+      focus: lang === 'fr' ? "Auto-évaluation & objectifs" : "Self-assessment & goals",
       activities: [
-        { 
-          icon: '🌱', 
-          description: lang === 'fr' ? 'Parties détente réflexion' : 'Relaxed thinking games', 
-          time: '60min',
-          type: 'practice',
-          topic: 'reflection'
-        },
-        { 
-          icon: '📚', 
-          description: lang === 'fr' ? 'Planification semaine prochaine' : 'Next week planning', 
-          time: '15min',
-          type: 'planning',
-          topic: 'planning'
-        },
-        { 
-          icon: '🎯', 
-          description: lang === 'fr' ? 'Objectifs et auto-évaluation' : 'Goals and self-assessment', 
-          time: '25min',
-          type: 'review',
-          topic: 'goals'
-        }
+        { icon: "📈", desc: lang === 'fr' ? "Bilan de la semaine" : "Weekly review", time: "30min" },
+        { icon: "🎯", desc: lang === 'fr' ? "Objectifs semaine prochaine" : "Next week goals", time: "15min" },
+        { icon: "🧘", desc: lang === 'fr' ? "Partie détente" : "Relaxed game", time: "30min" }
       ]
     }
   ];
 
-  // Calcul des totaux hebdomadaires réalistes
-  const totalWeeklyGames = (adjustedGames * 5) + Math.floor(adjustedGames * 1.5) + Math.floor(adjustedGames * 1.5);
-  const totalWeeklyTsumego = (adjustedTsumego * 5) + Math.floor(adjustedTsumego * 0.8) + Math.floor(adjustedTsumego * 1.5);
-
   return {
-    days: days,
-    totalGames: totalWeeklyGames,
-    totalTsumego: totalWeeklyTsumego,
-    totalTime: Math.round((dailyMinutes * 6 + dailyMinutes * 1.5) / 60),
-    weeklyReviews: adjustedReview,
-    focusAreas: {
-      fuseki: config.fusekiFocus,
-      chuban: config.chubanFocus,
-      yose: config.yoseFocus
-    }
+    days,
+    totalGames: config.dailyGames * 7,
+    totalTsumego: config.dailyTsumego * 7,
+    totalTime: dailyMinutes * 7,
+    weeklyReviews: config.weeklyReview
   };
-}
-// Fonctions utilitaires pour des temps réalistes
-function getRealisticTime(minutes) {
-  if (minutes <= 60) return '45-60min';
-  if (minutes <= 120) return '1h30-2h';
-  return '2h30+';
-}
-
-function getGameTime(gamesCount, dailyMinutes) {
-  const avgGameTime = 20; // 20 minutes par partie en moyenne
-  const totalGameTime = gamesCount * avgGameTime;
-  
-  // Ne pas dépasser 70% du temps total pour les parties
-  const maxGameTime = dailyMinutes * 0.7;
-  
-  const realisticTime = Math.min(totalGameTime, maxGameTime);
-  return `${Math.round(realisticTime)}min`;
 }
 function checkGoalAchievement() {
   if (!activeChar) return;
@@ -1838,13 +1654,27 @@ function renderProfile() {
   document.getElementById('profileXP').textContent = activeChar.xp;
   document.getElementById('profileGoal').textContent = activeChar.goal;
   
-  // Pour l'instant, on utilise encore le localStorage pour ces données
-  const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
-  document.getElementById('profileDays').textContent = Object.keys(charData).length;
+  // Récupérer le nombre de jours depuis Firebase
+  db.collection("training_logs")
+    .where("characterId", "==", activeChar.id)
+    .get()
+    .then((snapshot) => {
+      document.getElementById('profileDays').textContent = snapshot.size;
+    })
+    .catch((error) => {
+      console.error("Erreur chargement jours:", error);
+      document.getElementById('profileDays').textContent = "0";
+    });
+  
   document.getElementById('profileAchievements').textContent = activeChar.achievements ? activeChar.achievements.length : 0;
   
   document.getElementById('profileThemeColor').value = activeChar.theme || '#ff003c';
   document.getElementById('colorPreview').style.background = activeChar.theme || '#ff003c';
+  
+  // Afficher le temps d'étude actuel
+  document.getElementById('profileTrainTime').value = activeChar.time || '1h';
+  document.getElementById('currentTimeInfo').textContent = 
+    `Temps actuel : ${activeChar.time || '1h'} - Programme recalculé automatiquement`;
 }
 
 function updateProfileTheme() {
@@ -1941,99 +1771,151 @@ function renderLog() {
   if (!activeChar) return;
   
   const logbook = document.getElementById('logbook');
-  const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
-  logbook.innerHTML = '';
+  logbook.innerHTML = '<div style="text-align:center;padding:2rem;">Chargement...</div>';
   
-  const sortedDays = Object.keys(charData).sort((a, b) => b - a);
-  
-  sortedDays.forEach(day => {
-    const entry = charData[day];
-    const winRate = entry.games > 0 ? Math.round((entry.wins / entry.games) * 100) : 0;
-    
-    const logEntry = document.createElement('div');
-    logEntry.className = 'log-entry';
-    logEntry.innerHTML = `
-      <header>
-        <span>${trad[lang].dayText} ${day}</span>
-        <span>${new Date(entry.date).toLocaleDateString()}</span>
-      </header>
-      <div class="log-stats">
-        <div class="log-stat">
-          <div class="log-stat-value">${entry.games}</div>
-          <div>${trad[lang].gamesLabel}</div>
-        </div>
-        <div class="log-stat">
-          <div class="log-stat-value">${winRate}%</div>
-          <div>Win-rate</div>
-        </div>
-        <div class="log-stat">
-          <div class="log-stat-value">${entry.tsu}</div>
-          <div>${trad[lang].tsuLabel}</div>
-        </div>
-      </div>
-      <p><strong>${trad[lang].oppLabel}:</strong> ${entry.oppLevel}</p>
-      <p><strong>${trad[lang].notesLabel}:</strong> ${entry.notes}</p>
-    `;
-    logbook.appendChild(logEntry);
-  });
-  
-  const lastEntry = sortedDays[0];
-  if (lastEntry) {
-    document.getElementById('histAjout').textContent = trad[lang].lastEntry + lastEntry;
-  }
+  // Récupérer les entrées depuis Firebase
+  db.collection("training_logs")
+    .where("characterId", "==", activeChar.id)
+    .orderBy("timestamp", "desc")
+    .limit(50)
+    .get()
+    .then((snapshot) => {
+      logbook.innerHTML = '';
+      
+      if (snapshot.empty) {
+        logbook.innerHTML = '<div style="text-align:center;padding:2rem;opacity:0.7;">Aucune entrée de carnet</div>';
+        document.getElementById('histAjout').textContent = '';
+        return;
+      }
+      
+      let lastEntryDate = '';
+      
+      snapshot.forEach((doc) => {
+        const entry = doc.data();
+        const winRate = entry.games > 0 ? Math.round((entry.wins / entry.games) * 100) : 0;
+        
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        logEntry.innerHTML = `
+          <header>
+            <span>${trad[lang].dayText} ${entry.day}</span>
+            <span>${entry.timestamp?.toDate?.().toLocaleDateString() || new Date(entry.date).toLocaleDateString()}</span>
+          </header>
+          <div class="log-stats">
+            <div class="log-stat">
+              <div class="log-stat-value">${entry.games}</div>
+              <div>${trad[lang].gamesLabel}</div>
+            </div>
+            <div class="log-stat">
+              <div class="log-stat-value">${winRate}%</div>
+              <div>Win-rate</div>
+            </div>
+            <div class="log-stat">
+              <div class="log-stat-value">${entry.tsu}</div>
+              <div>${trad[lang].tsuLabel}</div>
+            </div>
+          </div>
+          <p><strong>${trad[lang].oppLabel}:</strong> ${entry.oppLevel}</p>
+          <p><strong>${trad[lang].notesLabel}:</strong> ${entry.notes}</p>
+        `;
+        logbook.appendChild(logEntry);
+        
+        // Garder la date de la dernière entrée
+        if (!lastEntryDate) {
+          lastEntryDate = entry.day;
+        }
+      });
+      
+      if (lastEntryDate) {
+        document.getElementById('histAjout').textContent = trad[lang].lastEntry + lastEntryDate;
+      }
+    })
+    .catch((error) => {
+      console.error("Erreur chargement carnet:", error);
+      logbook.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--rouge);">Erreur de chargement</div>';
+    });
 }
 
-function checkAchievements(charData) {
-  const totalGames = Object.values(charData).reduce((sum, entry) => sum + entry.games, 0);
-  const totalTsu = Object.values(charData).reduce((sum, entry) => sum + entry.tsu, 0);
-  const totalDays = Object.keys(charData).length;
+function checkAchievements() {
+  if (!activeChar) return;
   
-  const achievementsToCheck = [
-    { id: 'first_game', condition: totalGames >= 1 },
-    { id: '10_games', condition: totalGames >= 10 },
-    { id: '50_games', condition: totalGames >= 50 },
-    { id: '100_tsumego', condition: totalTsu >= 100 },
-    { id: '7_days', condition: totalDays >= 7 },
-    { id: '30_days', condition: totalDays >= 30 }
-  ];
-  
-  let newAchievements = [];
-  
-  achievementsToCheck.forEach(ach => {
-    if (ach.condition && activeChar.achievements && !activeChar.achievements.includes(ach.id)) {
-      activeChar.achievements.push(ach.id);
-      newAchievements.push(ach.id);
-    }
-  });
-  
-  if (newAchievements.length > 0) {
-    // Sauvegarder les nouveaux succès dans Firebase
-    db.collection("characters").doc(activeChar.id).update({
-      achievements: activeChar.achievements
+  // Récupérer les données depuis Firebase
+  db.collection("training_logs")
+    .where("characterId", "==", activeChar.id)
+    .get()
+    .then((snapshot) => {
+      const totalGames = snapshot.docs.reduce((sum, doc) => sum + doc.data().games, 0);
+      const totalTsu = snapshot.docs.reduce((sum, doc) => sum + doc.data().tsu, 0);
+      const totalDays = snapshot.size;
+      
+      const achievementsToCheck = [
+        { id: 'first_game', condition: totalGames >= 1 },
+        { id: '10_games', condition: totalGames >= 10 },
+        { id: '50_games', condition: totalGames >= 50 },
+        { id: '100_tsumego', condition: totalTsu >= 100 },
+        { id: '7_days', condition: totalDays >= 7 },
+        { id: '30_days', condition: totalDays >= 30 }
+      ];
+      
+      let newAchievements = [];
+      
+      achievementsToCheck.forEach(ach => {
+        if (ach.condition && activeChar.achievements && !activeChar.achievements.includes(ach.id)) {
+          activeChar.achievements.push(ach.id);
+          newAchievements.push(ach.id);
+        }
+      });
+      
+      if (newAchievements.length > 0) {
+        // Sauvegarder les nouveaux succès dans Firebase
+        db.collection("characters").doc(activeChar.id).update({
+          achievements: activeChar.achievements
+        });
+        
+        newAchievements.forEach(achId => {
+          alert(trad[lang].achievementUnlocked + achId);
+        });
+        
+        renderAchievements();
+      }
+    })
+    .catch((error) => {
+      console.error("Erreur vérification succès:", error);
     });
-    
-    newAchievements.forEach(achId => {
-      alert(trad[lang].achievementUnlocked + achId);
-    });
-  }
-  
-  renderAchievements();
 }
-
 function resetData() {
   if (confirm(trad[lang].confirmReset)) {
     if (activeChar) {
-      localStorage.removeItem('fox7d-' + activeChar.id);
-      // Réinitialiser XP et succès dans Firebase
-      db.collection("characters").doc(activeChar.id).update({
-        xp: 0,
-        achievements: []
-      });
-      activeChar.xp = 0;
-      activeChar.achievements = [];
-      refresh();
-      renderLog();
-      renderAchievements();
+      // Supprimer toutes les entrées d'entraînement de Firebase
+      db.collection("training_logs")
+        .where("characterId", "==", activeChar.id)
+        .get()
+        .then((snapshot) => {
+          const batch = db.batch();
+          snapshot.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+          return batch.commit();
+        })
+        .then(() => {
+          // Réinitialiser XP et succès dans Firebase
+          return db.collection("characters").doc(activeChar.id).update({
+            xp: 0,
+            achievements: []
+          });
+        })
+        .then(() => {
+          activeChar.xp = 0;
+          activeChar.achievements = [];
+          refresh();
+          renderLog();
+          renderAchievements();
+          alert("Données réinitialisées avec succès !");
+        })
+        .catch((error) => {
+          console.error("Erreur réinitialisation:", error);
+          alert("Erreur lors de la réinitialisation");
+        });
     }
   }
 }
@@ -2286,6 +2168,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
 
 
 
