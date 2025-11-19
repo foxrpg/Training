@@ -863,232 +863,29 @@ let isAdmin = false;
 let chatVisible = false;
 let db = null;
 let lang = 'fr';
+let firebaseInitialized = false;
 
-// ========== TRADUCTIONS COMPLÈTES ==========
-const trad = {
-  fr: {
-    // Navigation
-    navHome: "Accueil",
-    navLogin: "Connexion", 
-    navCreate: "Créer un personnage",
-    navRank: "Classement",
-    navProfile: "👤 Profil",
-    
-    // Page d'accueil
-    welcomeTitle: "Bienvenue au Fox RPG",
-    welcomeSubtitle: "Rejoins l'aventure ultime pour maîtriser le jeu de Go sur Fox Server. Suis ta progression, dépasse tes limites et deviens un véritable renard du Go !",
-    startBtn: "🎮 Commencer l'Aventure",
-    viewRankingBtn: "🏆 Voir le Classement",
-    foxBadge: "Plateforme : Fox Go Server (19×19)",
-    
-    // Statistiques
-    statsPlayers: "Joueurs Actifs",
-    statsGames: "Parties Jouées", 
-    statsAchievements: "Succès Débloqués",
-    
-    // Features
-    feature1Title: "Suivi de Progression",
-    feature1Desc: "Enregistre tes parties, analyse tes performances et suis ton évolution en temps réel",
-    feature2Title: "Objectifs Personnalisés", 
-    feature2Desc: "Définis tes objectifs de niveau et reçois des programmes d'entraînement adaptés",
-    feature3Title: "Système de Succès",
-    feature3Desc: "Débloque des succès en progressant et montre tes compétences",
-    feature4Title: "Communauté",
-    feature4Desc: "Discute avec d'autres joueurs et partage tes experiences",
-    
-    // Page login
-    loginTitle: "Connexion",
-    loginSubtitle: "Entre tes identifiants pour accéder à ton aventure",
-    usernameLabel: "Nom d'utilisateur",
-    passwordLabel: "Mot de passe", 
-    loginBtn: "🎯 Se Connecter",
-    backBtn: "← Retour à l'Accueil",
-    createCharBtn: "➕ Créer un Personnage",
-    
-    // Page création
-    createTitle: "Créer un personnage",
-    nameLabel: "Nom du personnage", 
-    avatarLabel: "Avatar",
-    currentLevelLabel: "Niveau actuel",
-    goalLevelLabel: "Objectif de niveau",
-    trainTimeLabel: "Temps d'entraînement quotidien",
-    pwdLabel: "Mot de passe",
-    rememberLabel: "Se souvenir du mot de passe", 
-    themeColorLabel: "Couleur de thème",
-    quoteLabel: "Phrase de présentation",
-    genderLabel: "Genre",
-    styleLabel: "Style de jeu",
-    createBtn: "Créer un personnage",
-    
-    // Page profil
-    profileXPLabel: "XP",
-    profileDaysLabel: "Jours",
-    profileAchievementsLabel: "Succès", 
-    profileGoalLabel: "Objectif",
-    themeColorLabelProfile: "Couleur du thème",
-    backToGameBtn: "🎮 Retour au Jeu",
-    
-    // Page classement
-    rankTitle: "Classement par XP",
-    rankAvatar: "Avatar",
-    rankName: "Nom",
-    rankLevel: "Niveau",
-    
-    // Page jeu
-    dayText: "Jour",
-    goalText: "Objectif ",
-    goalAchievedLabel: "Objectif Atteint !",
-    navTsumego: "Tsumego du jour",
-    periodLabel: "Visualisation du Win-Rate", 
-    wrLabel: "Win-rate affiché",
-    achTitle: "Succès",
-    programTitle: "Programme hebdomadaire",
-    logbookTitle: "Carnet d'entraînement",
-    dayLabelText: "Jour",
-    gamesLabel: "Parties 19×19",
-    winsLabel: "Victoires",
-    tsuLabel: "Tsumego",
-    timeLabel: "Minutes",
-    oppLabel: "Niveau adverse",
-    notesLabel: "Notes",
-    addLabel: "Ajouter",
-    resetLabel: "Réinitialiser toutes les données",
-    
-    // Chat
-    chatTitle: "Chat Global",
-    
-    // Messages divers
-    lastEntry: "Dernière entrée : ",
-    confirmReset: "Supprimer TOUTES les données (progression + carnet) ? Cette action est irréversible.",
-    confirmDelete: "Supprimer {name} ?",
-    wrongPassword: "Mot de passe incorrect",
-    namePasswordRequired: "Nom et mot de passe requis",
-    credentialsRequired: "Veuillez entrer un nom d'utilisateur et un mot de passe",
-    wrongCredentials: "Identifiants incorrects",
-    chooseCharacter: "Choisis ton personnage",
-    goalCongratulations: "Félicitations ! Vous avez atteint votre objectif {goal} !\nEntrez votre nouvel objectif (ex: 5d, 7d, etc.) :",
-    newGoalSet: "Nouvel objectif défini : {goal} !",
-    achievementUnlocked: "Succès débloqué : ",
-    levelUp: "Niveau {level} !",
-    chatConnect: "Connecte-toi avec un personnage pour chatter !",
-    messageError: "Erreur d'envoi du message"
-  },
-  en: {
-    // Navigation
-    navHome: "Home",
-    navLogin: "Login",
-    navCreate: "Create Character", 
-    navRank: "Leaderboard",
-    navProfile: "👤 Profile",
-    
-    // Page d'accueil
-    welcomeTitle: "Welcome to Fox RPG",
-    welcomeSubtitle: "Join the ultimate adventure to master the game of Go on Fox Server. Track your progress, push your limits and become a true Go fox!",
-    startBtn: "🎮 Start Adventure", 
-    viewRankingBtn: "🏆 View Ranking",
-    foxBadge: "Platform : Fox Go Server (19×19)",
-    
-    // Statistiques
-    statsPlayers: "Active Players",
-    statsGames: "Games Played",
-    statsAchievements: "Achievements Unlocked",
-    
-    // Features
-    feature1Title: "Progress Tracking",
-    feature1Desc: "Record your games, analyze your performance and track your evolution in real time",
-    feature2Title: "Custom Goals",
-    feature2Desc: "Set your level goals and receive adapted training programs", 
-    feature3Title: "Achievement System",
-    feature3Desc: "Unlock achievements as you progress and show your skills",
-    feature4Title: "Community",
-    feature4Desc: "Chat with other players and share your experiences",
-    
-    // Page login
-    loginTitle: "Login",
-    loginSubtitle: "Enter your credentials to access your adventure",
-    usernameLabel: "Username",
-    passwordLabel: "Password",
-    loginBtn: "🎯 Login", 
-    backBtn: "← Back to Home",
-    createCharBtn: "➕ Create Character",
-    
-    // Page création
-    createTitle: "Create a character",
-    nameLabel: "Character name",
-    avatarLabel: "Avatar",
-    currentLevelLabel: "Current level",
-    goalLevelLabel: "Goal level", 
-    trainTimeLabel: "Daily training time",
-    pwdLabel: "Password",
-    rememberLabel: "Remember password",
-    themeColorLabel: "Theme color",
-    quoteLabel: "Presentation sentence",
-    genderLabel: "Gender",
-    styleLabel: "Game style", 
-    createBtn: "Create Character",
-    
-    // Page profil
-    profileXPLabel: "XP",
-    profileDaysLabel: "Days", 
-    profileAchievementsLabel: "Achievements",
-    profileGoalLabel: "Goal",
-    themeColorLabelProfile: "Theme color",
-    backToGameBtn: "🎮 Back to Game",
-    
-    // Page classement
-    rankTitle: "Ranking by XP",
-    rankAvatar: "Avatar",
-    rankName: "Name",
-    rankLevel: "Level",
-    
-    // Page jeu
-    dayText: "Day",
-    goalText: "Goal ",
-    goalAchievedLabel: "Goal Achieved!",
-    navTsumego: "Daily Tsumego",
-    periodLabel: "Win-rate visualization",
-    wrLabel: "Displayed win-rate",
-    achTitle: "Achievements", 
-    programTitle: "Weekly Program",
-    logbookTitle: "Training Logbook",
-    dayLabelText: "Day",
-    gamesLabel: "Games 19×19",
-    winsLabel: "Wins",
-    tsuLabel: "Tsumego", 
-    timeLabel: "Minutes",
-    oppLabel: "Opponent level",
-    notesLabel: "Notes",
-    addLabel: "Add",
-    resetLabel: "Reset all data",
-    
-    // Chat
-    chatTitle: "Global Chat",
-    
-    // Messages divers
-    lastEntry: "Last entry: ",
-    confirmReset: "Delete ALL data (progression + logbook) ? This action is irreversible.",
-    confirmDelete: "Delete {name} ?",
-    wrongPassword: "Wrong password",
-    namePasswordRequired: "Name and password required", 
-    credentialsRequired: "Please enter username and password",
-    wrongCredentials: "Wrong credentials",
-    chooseCharacter: "Choose your character",
-    goalCongratulations: "Congratulations! You achieved your goal {goal}!\nEnter your new goal (ex: 5d, 7d, etc.):",
-    newGoalSet: "New goal set: {goal}!",
-    achievementUnlocked: "Achievement unlocked: ",
-    levelUp: "Level {level} !",
-    chatConnect: "Connect with a character to chat!",
-    messageError: "Message sending error"
-  }
-};
-
-// ========== FONCTIONS PRINCIPALES ==========
-
-// Initialisation Firebase
+// ========== INITIALISATION FIREBASE ==========
 async function initializeFirebase() {
+  if (firebaseInitialized) return;
+  
   try {
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
-    const { getFirestore, collection, getDocs, addDoc, updateDoc, doc, deleteDoc, onSnapshot, orderBy, query, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    // Charger Firebase de manière synchrone
+    const firebaseAppScript = document.createElement('script');
+    firebaseAppScript.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    
+    const firebaseFirestoreScript = document.createElement('script');
+    firebaseFirestoreScript.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    await new Promise((resolve, reject) => {
+      firebaseAppScript.onload = () => {
+        document.head.appendChild(firebaseFirestoreScript);
+        firebaseFirestoreScript.onload = resolve;
+        firebaseFirestoreScript.onerror = reject;
+      };
+      firebaseAppScript.onerror = reject;
+      document.head.appendChild(firebaseAppScript);
+    });
 
     const firebaseConfig = {
       apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
@@ -1099,144 +896,133 @@ async function initializeFirebase() {
       appId: "1:218915576778:web:8b03757d20b8451e428d33"
     };
 
-    const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    // Initialiser Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
     
     console.log("🔥 Firebase connecté !");
-    return { db, collection, getDocs, addDoc, updateDoc, doc, deleteDoc, onSnapshot, orderBy, query, serverTimestamp };
+    firebaseInitialized = true;
+    
   } catch (error) {
     console.error("❌ Erreur Firebase:", error);
-    return null;
+    // Mode dégradé si Firebase échoue
+    db = {
+      collection: () => ({
+        add: () => Promise.resolve(),
+        get: () => Promise.resolve({ docs: [] })
+      })
+    };
   }
 }
 
-// Navigation entre pages
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(name).classList.add('active');
+// ========== FONCTIONS CHAT FIREBASE ==========
+function toggleChat() {
+  const chatbox = document.getElementById('chatbox');
+  chatVisible = !chatVisible;
   
-  if (name === 'ranking') renderRanking();
-  if (name === 'welcome') updateWelcomeStats();
-  if (name === 'profile' && activeChar) renderProfile();
-  if (name === 'game') { 
-    renderWeeklyProgram(); 
-    renderAchievements(); 
-    checkGoalAchievement();
-    if (activeChar) setupChatListener();
+  if (chatVisible) {
+    chatbox.classList.add('active');
+    if (activeChar) {
+      setupChatListener();
+    } else {
+      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Connecte-toi avec un personnage pour chatter !</div>';
+    }
+  } else {
+    chatbox.classList.remove('active');
   }
 }
 
-// Gestion de la langue
-function setLang(l) {
-  lang = l;
+async function setupChatListener() {
+  if (!firebaseInitialized || !activeChar) return;
   
-  // Mettre à jour les boutons de langue
-  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
-  
-  // Traduire tous les textes
-  Object.keys(trad[lang]).forEach(key => {
-    const elements = document.querySelectorAll(`[id="${key}"]`);
-    elements.forEach(el => {
-      if (el.tagName === 'INPUT' && el.type === 'placeholder') {
-        el.placeholder = trad[lang][key];
-      } else {
-        el.textContent = trad[lang][key];
-      }
+  try {
+    const q = firebase.firestore().collection("chat").orderBy("timestamp", "asc");
+    
+    q.onSnapshot((snapshot) => {
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.innerHTML = '';
+      
+      snapshot.forEach((doc) => {
+        const message = doc.data();
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message';
+        messageDiv.innerHTML = `
+          <div class="message-header">
+            <span class="message-user">${message.user}</span>
+            <span class="message-time">${new Date(message.timestamp?.toDate()).toLocaleTimeString()}</span>
+          </div>
+          <div>${message.text}</div>
+        `;
+        chatMessages.appendChild(messageDiv);
+      });
+      
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     });
-  });
-  
-  // Mettre à jour les éléments dynamiques
-  if (activeChar) {
-    refresh();
-    renderLog();
-    renderAchievements();
-    checkGoalAchievement();
-    renderProfile();
+  } catch (error) {
+    console.error("Erreur chat:", error);
   }
-  if (activeChar) renderWeeklyProgram();
 }
 
-// Page d'accueil - statistiques
-function updateWelcomeStats() {
-  const totalPlayers = characters.length;
-  const totalGames = characters.reduce((sum, char) => {
-    const charData = JSON.parse(localStorage.getItem('fox7d-' + char.id) || '{}');
-    return sum + Object.values(charData).reduce((games, entry) => games + (entry.games || 0), 0);
-  }, 0);
-  const totalAchievements = characters.reduce((sum, char) => sum + (char.achievements ? char.achievements.length : 0), 0);
-  
-  document.getElementById('totalPlayers').textContent = totalPlayers;
-  document.getElementById('totalGames').textContent = totalGames;
-  document.getElementById('totalAchievements').textContent = totalAchievements;
-}
-
-// Connexion utilisateur
-function loginUser() {
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
-  
-  if (!username || !password) {
-    alert(trad[lang].credentialsRequired);
+async function sendMessage() {
+  if (!activeChar || !firebaseInitialized) {
+    alert("Connecte-toi avec un personnage pour chatter !");
     return;
   }
   
-  const character = characters.find(char => 
-    char.name.toLowerCase() === username.toLowerCase() && char.pwd === password
-  );
+  const chatInput = document.getElementById('chatInput');
+  const message = chatInput.value.trim();
   
-  if (character) {
-    const charIndex = characters.findIndex(c => c.id === character.id);
-    loginCharacter(charIndex);
-  } else {
-    alert(trad[lang].wrongCredentials);
+  if (!message) return;
+  
+  try {
+    await firebase.firestore().collection("chat").add({
+      user: activeChar.name,
+      text: message,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    chatInput.value = '';
+  } catch (error) {
+    console.error("Erreur d'envoi du message", error);
+    alert("Erreur d'envoi du message");
   }
 }
 
-// Charger les personnages
-function loadChars() {
-  const saved = localStorage.getItem('fox7d-chars');
-  if (saved) {
-    characters = JSON.parse(saved);
-    const savedActive = localStorage.getItem('fox7d-active');
-    if (savedActive) {
-      const activeIndex = characters.findIndex(c => c.id === savedActive);
-      if (activeIndex !== -1) {
-        loginCharacter(activeIndex);
+// ========== INITIALISATION AU CHARGEMENT ==========
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialiser le chat
+  const chatInput = document.getElementById('chatInput');
+  if (chatInput) {
+    chatInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
       }
-    }
-    updateWelcomeStats();
+    });
   }
-}
+  
+  // Initialiser Firebase au chargement de la page
+  initializeFirebase();
+  
+  // ... le reste de ton code d'initialisation
+});
 
-// Sauvegarder les personnages
-function saveChars() {
-  localStorage.setItem('fox7d-chars', JSON.stringify(characters));
-  updateWelcomeStats();
-}
-
-// Connexion d'un personnage
+// Dans ta fonction loginCharacter, ajoute l'initialisation Firebase :
 function loginCharacter(index) {
   activeChar = characters[index];
   localStorage.setItem('fox7d-active', activeChar.id);
   
-  // Afficher le bouton profil
   document.getElementById('navProfile').style.display = 'block';
   
-  // Mettre à jour l'interface
   refresh();
   renderLog();
   renderAchievements();
   renderWeeklyProgram();
   checkGoalAchievement();
   
-  // Aller à la page jeu
   showPage('game');
   
-  // Initialiser Firebase si pas déjà fait
-  if (!db) {
-    initializeFirebase();
-  }
+  // S'assurer que Firebase est initialisé pour le chat
+  initializeFirebase();
 }
 
 // Créer un personnage
