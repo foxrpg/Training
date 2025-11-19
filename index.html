@@ -1300,6 +1300,22 @@ function renderAchievements() {
   });
 }
 
+    function checkGoalAchievement() {
+  if (!activeChar) return;
+  
+  const currentLevel = activeChar.level;
+  const goalLevel = activeChar.goal;
+  const levels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
+  const currentIndex = levels.indexOf(currentLevel);
+  const goalIndex = levels.indexOf(goalLevel);
+  
+  if (currentIndex >= goalIndex) {
+    document.getElementById('goalAchievedBtn').style.display = 'block';
+  } else {
+    document.getElementById('goalAchievedBtn').style.display = 'none';
+  }
+}
+
 // ========== PROGRAMME D'ENTRAINEMENT ==========
 
 function getDailyMinutesFromTime(timeString) {
@@ -2169,6 +2185,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
 
 
 
