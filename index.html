@@ -995,6 +995,7 @@ async function loginCharacter(idx) {
   populateDaySelect(); 
   checkGoalAchievement();
   
+  // ⭐⭐ INITIALISER LE CHAT ⭐⭐
   setupChatListener();
 }
 
@@ -1017,7 +1018,439 @@ function getXpNeeded(lvl) {
   return 100;
 }
 
-// ========== PROGRAMMES D'ENTRAÎNEMENT COMPLETS ==========
+// ========== CHATBOX FONCTIONS ==========
+function toggleChat() {
+  const chatbox = document.getElementById('chatbox');
+  chatVisible = !chatVisible;
+  if (chatVisible) {
+    chatbox.classList.add('active');
+  } else {
+    chatbox.classList.remove('active');
+  }
+}
+
+async function sendMessage() {
+  if (!activeChar) {
+    alert("Connecte-toi avec un personnage pour chatter !");
+    return;
+  }
+  
+  const input = document.getElementById('chatInput');
+  const message = input.value.trim();
+  
+  if (!message) return;
+  
+  try {
+    const firebase = await initializeFirebase();
+    if (firebase && firebase.db) {
+      const { addDoc, collection, serverTimestamp } = firebase;
+      
+      await addDoc(collection(db, "chat"), {
+        text: message,
+        user: activeChar.name,
+        avatar: activeChar.avatar,
+        timestamp: serverTimestamp(),
+        userId: activeChar.id
+      });
+      
+      input.value = '';
+      console.log("✅ Message envoyé");
+    }
+  } catch (error) {
+    console.error("❌ Erreur envoi message:", error);
+    alert("Erreur d'envoi du message");
+  }
+}
+
+async function setupChatListener() {
+  try {
+    const firebase = await initializeFirebase();
+    if (firebase && firebase.db) {
+      const { collection, onSnapshot, orderBy, query } = firebase;
+      
+      const q = query(collection(db, "chat"), orderBy("timestamp", "asc"));
+      
+      onSnapshot(q, (snapshot) => {
+        const chatDiv = document.getElementById('chatMessages');
+        chatDiv.innerHTML = '';
+        
+        snapshot.forEach((doc) => {
+          const message = doc.data();
+          displayMessage(message);
+        });
+        
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+      });
+    }
+  } catch (error) {
+    console.error("❌ Erreur chat listener:", error);
+  }
+}
+
+function displayMessage(message) {
+  const chatDiv = document.getElementById('chatMessages');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'chat-message';
+  
+  const time = message.timestamp ? 
+    new Date(message.timestamp.toDate()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 
+    'maintenant';
+  
+  messageDiv.innerHTML = `
+    <div class="message-header">
+      <span style="font-size:1.2em;">${message.avatar || '👤'}</span>
+      <span class="message-user">${message.user}</span>
+      <span class="message-time">${time}</span>
+    </div>
+    <div>${message.text}</div>
+  `;
+  
+  chatDiv.appendChild(messageDiv);
+}
+
+// ========== ADMIN LOGIN ==========
+function loginAdmin() {
+  const name = document.getElementById('adminName').value.trim();
+  const pwd = document.getElementById('adminPwd').value.trim();
+  if (name === "Admin" && pwd === "Cuicui1082910") {
+    isAdmin = true;
+    let admin = characters.find(c => c.name === "Admin");
+    if (!admin) {
+      admin = {
+        id: Date.now(), 
+        name: "Admin", 
+        avatar: "👑", 
+        pwd: "Cuicui1082910", 
+        xp: 340, 
+        level: "2d", 
+        day: 0, 
+        achievements: Array.from({ length: 5 }, (_, i) => i), 
+        color: '#ff003c', 
+        quote: lang === 'fr' ? 'Je suis l\'Admin.' : 'I am the Admin.', 
+        gender: 'Autre', 
+        style: 'Équilibré', 
+        goal: '8d', 
+        time: '2h', 
+        goalAchieved: false
+      };
+      characters.push(admin);
+      saveChars();
+    }
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block');
+    const adminIndex = characters.findIndex(c => c.name === "Admin");
+    if (adminIndex !== -1) {
+      loginCharacter(adminIndex);
+    }
+    showPage('game');
+  } else {
+    alert(lang === 'fr' ? "Identifiants admin incorrects." : "Wrong admin credentials.");
+  }
+}
+
+// ========== PANEL ADMIN – SUPPRESSION ==========
+function renderAdminPanel() {
+  const tbody = document.querySelector('#adminTable tbody');
+  tbody.innerHTML = '';
+  characters.forEach((c, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${c.avatar}</td><td>${c.name}</td><td>${c.xp}</td><td>${c.level}</td><td><button onclick="deleteAccount(${idx})">${lang === 'fr' ? 'Supprimer' : 'Delete'}</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function deleteAccount(idx) {
+  if (!isAdmin) { alert(lang === 'fr' ? "Admin uniquement." : "Admin only."); return; }
+  if (!confirm(lang === 'fr' ? `Supprimer ${characters[idx].name} ?` : `Delete ${characters[idx].name} ?`)) return;
+  const id = characters[idx].id;
+  localStorage.removeItem('fox7d-' + id);
+  localStorage.removeItem('fox7d-pwd-' + id);
+  characters.splice(idx, 1);
+  await saveChars();
+  renderAdminPanel();
+  showPage('home'); 
+  updateWelcomeStats();
+}
+
+// ========== OBJECTIF ATTEINT ==========
+function checkGoalAchievement() {
+  if (!activeChar) return;
+  
+  const currentLevelValue = levelToNumber(activeChar.level);
+  const goalLevelValue = levelToNumber(activeChar.goal);
+  
+  document.getElementById('goalText').textContent = trad[lang].goalText + activeChar.goal + " Fox";
+  
+  if (currentLevelValue >= goalLevelValue && !activeChar.goalAchieved) {
+    document.getElementById('goalAchievedBtn').style.display = 'inline-block';
+  } else {
+    document.getElementById('goalAchievedBtn').style.display = 'none';
+  }
+}
+
+function goalAchieved() {
+  if (!activeChar) return;
+  
+  const newGoal = prompt(
+    lang === 'fr' ?
+      "Félicitations ! Vous avez atteint votre objectif " + activeChar.goal + " !\nEntrez votre nouvel objectif (ex: 5d, 7d, etc.) :" :
+      "Congratulations! You achieved your goal " + activeChar.goal + "!\nEnter your new goal (ex: 5d, 7d, etc.):",
+    getNextGoal(activeChar.goal)
+  );
+  
+  if (newGoal && isValidLevel(newGoal)) {
+    activeChar.goal = newGoal;
+    activeChar.goalAchieved = false;
+    saveChars();
+    checkGoalAchievement();
+    alert(lang === 'fr' ?
+      "Nouvel objectif défini : " + newGoal + " !" :
+      "New goal set: " + newGoal + "!");
+  }
+}
+
+function levelToNumber(level) {
+  if (level.includes('k')) return -parseInt(level);
+  if (level.includes('d')) return parseInt(level);
+  return 0;
+}
+
+function getNextGoal(currentGoal) {
+  const levels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
+  const currentIndex = levels.indexOf(currentGoal);
+  return currentIndex < levels.length - 1 ? levels[currentIndex + 1] : '9d';
+}
+
+function isValidLevel(level) {
+  const validLevels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
+  return validLevels.includes(level);
+}
+
+// ========== CARNET D'ENTRAINEMENT ==========
+function populateDaySelect() {
+  const input = document.getElementById('logDay');
+  input.value = activeChar ? activeChar.day + 1 : 1;
+}
+
+const form = document.getElementById('logForm');
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!activeChar) { alert(lang === 'fr' ? 'Sélectionne un personnage' : 'Choose a character'); return; }
+  const day = parseInt(document.getElementById('logDay').value);
+  const games = parseInt(document.getElementById('games').value) || 0;
+  const wins = parseInt(document.getElementById('wins').value) || 0;
+  const time = parseInt(document.getElementById('time').value) || 0;
+  const tsu = parseInt(document.getElementById('tsu').value) || 0;
+  
+  const entry = {
+    date: new Date().toLocaleString('fr'),
+    games: games,
+    wins: wins,
+    time: time,
+    tsu: tsu,
+    level: document.getElementById('oppLevel').value,
+    notes: document.getElementById('notes').value
+  };
+  const charData = getCharData();
+  charData[day] = entry;
+  saveCharData(charData);
+  
+  activeChar.xp += games * 2 + wins * 5 + tsu * 1;
+  const needed = getXpNeeded(activeChar.level);
+  if (activeChar.xp >= needed) {
+    activeChar.xp -= needed;
+    levelUp();
+  }
+  activeChar.day = Math.max(activeChar.day, day);
+  await saveChars(); 
+  updateActiveDisplay(); 
+  checkAchievements(); 
+  checkGoalAchievement();
+  form.reset(); 
+  refresh(); 
+  renderLog(); 
+  populateDaySelect();
+  
+  const hist = document.getElementById('histAjout');
+  hist.innerHTML = (lang === 'fr' ? 'Dernière entrée : ' : 'Last entry: ') + `Jour ${day} – ${entry.games} parties – ${entry.wins} victoires – ${entry.time} min – ${entry.tsu} tsumego`;
+});
+
+function resetData() {
+  if (!confirm(lang === 'fr' ? 'Supprimer TOUTES les données (progression + carnet) ? Cette action est irréversible.' : 'Delete ALL data (progression + logbook) ? This action is irreversible.')) return;
+  if (!activeChar) return;
+  localStorage.removeItem('fox7d-' + activeChar.id);
+  activeChar.day = 0; 
+  activeChar.xp = 0; 
+  activeChar.level = "10k"; 
+  activeChar.achievements = [];
+  activeChar.goalAchieved = false;
+  saveChars(); 
+  updateActiveDisplay(); 
+  refresh(); 
+  renderLog(); 
+  renderAchievements(); 
+  populateDaySelect(); 
+  checkGoalAchievement();
+  document.getElementById('histAjout').innerHTML = '';
+}
+
+// ========== CLASSEMENT ==========
+function renderRanking() {
+  const tbody = document.querySelector('#rankTable tbody');
+  tbody.innerHTML = '';
+  const sorted = [...characters].sort((a, b) => b.xp - a.xp);
+  sorted.forEach((c, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i + 1}</td><td>${c.avatar}</td><td>${c.name}</td><td>${c.xp}</td><td>${c.level}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ========== DONNÉES PAR PERSO ==========
+function getCharData() {
+  if (!activeChar) return {};
+  return JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
+}
+
+function saveCharData(data) {
+  if (!activeChar) return;
+  localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(data));
+}
+
+function refresh() {
+  if (!activeChar) return;
+  const data = getCharData();
+  const day = Object.keys(data).length;
+  document.getElementById('dayLabel').textContent = day;
+  document.getElementById('winRateDisplay').textContent = calcWinRate(document.getElementById('periodSelect').value);
+  
+  const bar = document.getElementById('progressFill');
+  bar.style.width = Math.round(day / 365 * 100) + '%';
+  bar.textContent = Math.round(day / 365 * 100) + ' %';
+  checkAchievements();
+}
+
+function calcWinRate(period) {
+  if (!activeChar) return '–';
+  const data = getCharData();
+  const now = new Date();
+  let total = 0, wins = 0;
+  Object.values(data).forEach(o => {
+    const d = new Date(o.date);
+    if (period === 'month' && d.getMonth() !== now.getMonth()) return;
+    if (period === 'week' && (now - d) / 864e5 > 7) return;
+    total += o.games; wins += o.wins;
+  });
+  return total ? (wins / total * 100).toFixed(1) + ' %' : '–';
+}
+
+// ========== SUCCÈS ==========
+function checkAchievements() {
+  if (!activeChar) return;
+  const data = getCharData();
+  const days = Object.keys(data).length;
+  const totalTsumego = Object.values(data).reduce((s, o) => s + (o.tsu || 0), 0);
+  const totalWins = Object.values(data).reduce((s, o) => s + (o.wins || 0), 0);
+
+  if (days >= 7 && !activeChar.achievements.includes(2)) unlockAchievement(2);
+  if (totalTsumego >= 100 && !activeChar.achievements.includes(1)) unlockAchievement(1);
+  if (totalWins >= 10 && !activeChar.achievements.includes(0)) unlockAchievement(0);
+  if (levelToNumber(activeChar.level) >= 3 && !activeChar.achievements.includes(3)) unlockAchievement(3);
+}
+
+function unlockAchievement(id) {
+  if (activeChar.achievements.includes(id)) return;
+  activeChar.achievements.push(id);
+  playSound('success');
+  showConfetti();
+  alert("🏆 " + (lang === 'fr' ? 'Succès débloqué : ' : 'Achievement unlocked: ') + all[id].name);
+  saveChars(); 
+  renderAchievements();
+}
+
+function levelUp() {
+  const levels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
+  const currentIndex = levels.indexOf(activeChar.level);
+  if (currentIndex < levels.length - 1) {
+    activeChar.level = levels[currentIndex + 1];
+  }
+  playSound('levelup');
+  showConfetti();
+  document.getElementById('activeEmoji').animate(
+    [{ transform: 'scale(1)' }, { transform: 'scale(1.5)' }, { transform: 'scale(1)' }],
+    { duration: 600, iterations: 1 }
+  );
+  alert(`🎉 ${lang === 'fr' ? 'Niveau' : 'Level'} ${activeChar.level} !`);
+  checkGoalAchievement();
+}
+
+function playSound(type) {
+  const audio = new Audio();
+  audio.src = type === 'levelup' ? 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE' : 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE';
+  audio.play();
+}
+
+function showConfetti() {
+  const emos = ['🎉', '✨', '🎊', '🥳'];
+  for (let i = 0; i < 20; i++) {
+    const span = document.createElement('span');
+    span.textContent = emos[Math.floor(Math.random() * emos.length)];
+    span.style.position = 'fixed';
+    span.style.left = Math.random() * 100 + '%';
+    span.style.top = '-2rem';
+    span.style.fontSize = '1.5rem';
+    span.style.pointerEvents = 'none';
+    span.style.zIndex = 9999;
+    document.body.appendChild(span);
+    span.animate(
+      [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(120vh)', opacity: 0 }],
+      { duration: 1500, fill: 'forwards' }
+    ).onfinish = () => span.remove();
+  }
+}
+
+function renderLog() {
+  const data = getCharData();
+  const div = document.getElementById('logbook');
+  div.innerHTML = '';
+  Object.keys(data).sort((a, b) => b - a).forEach(d => {
+    const e = data[d];
+    const entry = document.createElement('div'); 
+    entry.className = 'log-entry';
+    entry.innerHTML = `<header><span>${lang === 'fr' ? 'Jour' : 'Day'} ${d}</span><span>${e.date}</span></header><p>${e.games} ${lang === 'fr' ? 'parties' : 'games'} – ${e.wins} ${lang === 'fr' ? 'victoires' : 'wins'} – ${e.time} min – ${e.tsu} tsumego – ${lang === 'fr' ? 'niveau' : 'level'} ${e.level}</p><p>${e.notes}</p>`;
+    div.appendChild(entry);
+  });
+}
+
+const all = [
+  { name: "🔥 Serial Winner", desc: lang === 'fr' ? "Gagne 10 parties d'affilée" : "Win 10 games in a row" },
+  { name: "🧠 Tsumego Master", desc: lang === 'fr' ? "Résous 100 tsumego" : "Solve 100 tsumego" },
+  { name: "⏰ Régulier", desc: lang === 'fr' ? "Entraînement 7 jours de suite" : "7 days of training in a row" },
+  { name: "📈 Progression", desc: lang === 'fr' ? "Passe un niveau" : "Level up" },
+  { name: "🎯 Objectif atteint", desc: lang === 'fr' ? "Atteins ton objectif 2025" : "Reach your 2025 goal" }
+];
+
+function renderAchievements() {
+  const div = document.getElementById('achList');
+  div.innerHTML = '';
+  if (!activeChar) return;
+  const unlocked = activeChar.achievements || [];
+  all.forEach((a, i) => {
+    const sp = document.createElement('span');
+    sp.className = 'achievement' + (unlocked.includes(i) ? ' unlocked' : '');
+    sp.innerHTML = `${a.name}<span class="tooltiptext">${a.desc}</span>`;
+    div.appendChild(sp);
+  });
+}
+
+// ========== PROGRAMMES D'ENTRAÎNEMENT ==========
+function renderWeeklyProgram() {
+  const div = document.getElementById('weeklyProgram');
+  if (!activeChar) { div.innerHTML = ''; return; }
+  const lvl = activeChar.level || '10k';
+  const prog = getTrainingProgram(lvl);
+  div.textContent = prog;
+}
+
 function getTrainingProgram(level) {
   const levelKey = level.includes('k')
     ? (parseInt(level) >= 5 ? '10k-5k' : '5k-1k')
@@ -1398,7 +1831,6 @@ Sunday – 75 min
 • Pro lecture – 30 min
 • Tsumego – 15 min
 • Fun game – 30 min`,
-    // ... autres programmes en anglais
   };
 
   return lang === 'fr' ? 
@@ -1406,18 +1838,17 @@ Sunday – 75 min
     (programmesEn[key] || 'Program not available for this level and training time.');
 }
 
-// ========== RESTE DU CODE ==========
-// [Les autres fonctions restent identiques...]
-
 // ========== INITIALISATION ==========
 document.addEventListener('DOMContentLoaded', function() {
   // Initialiser le chat
   const chatInput = document.getElementById('chatInput');
-  chatInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      sendMessage();
-    }
-  });
+  if (chatInput) {
+    chatInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+  }
   
   // Charger les personnages
   loadChars();
