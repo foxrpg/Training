@@ -1079,7 +1079,16 @@ function loginCharacter(index) {
   
   showPage('game');
   
-  initializeFirebase();
+  // Initialiser Firebase de façon asynchrone
+  initializeFirebase().then(() => {
+    console.log("✅ Firebase initialisé pour le chat");
+    // Mettre en place l'écoute du chat une fois Firebase prêt
+    if (activeChar) {
+      setupChatListener();
+    }
+  }).catch(error => {
+    console.log("❌ Firebase non disponible, mode hors ligne");
+  });
 }
 
 // Créer un personnage
@@ -1577,26 +1586,28 @@ function resetData() {
   }
 }
 
-// ========== FIREBASE ==========
+// ========== INITIALISATION FIREBASE CORRIGÉE ==========
 async function initializeFirebase() {
   if (firebaseInitialized) return;
   
   try {
-    const firebaseAppScript = document.createElement('script');
-    firebaseAppScript.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    
-    const firebaseFirestoreScript = document.createElement('script');
-    firebaseFirestoreScript.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    await new Promise((resolve, reject) => {
-      firebaseAppScript.onload = () => {
-        document.head.appendChild(firebaseFirestoreScript);
-        firebaseFirestoreScript.onload = resolve;
-        firebaseFirestoreScript.onerror = reject;
-      };
-      firebaseAppScript.onerror = reject;
-      document.head.appendChild(firebaseAppScript);
-    });
+    // Vérifier si Firebase est déjà chargé
+    if (typeof firebase === 'undefined') {
+      // Charger Firebase
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        script.onload = () => {
+          const script2 = document.createElement('script');
+          script2.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+          script2.onload = resolve;
+          script2.onerror = reject;
+          document.head.appendChild(script2);
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
 
     const firebaseConfig = {
       apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
@@ -1607,7 +1618,8 @@ async function initializeFirebase() {
       appId: "1:218915576778:web:8b03757d20b8451e428d33"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
+    // Initialiser Firebase
+    firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     
     console.log("🔥 Firebase connecté !");
@@ -1615,15 +1627,10 @@ async function initializeFirebase() {
     
   } catch (error) {
     console.error("❌ Erreur Firebase:", error);
-    db = {
-      collection: () => ({
-        add: () => Promise.resolve(),
-        get: () => Promise.resolve({ docs: [] })
-      })
-    };
   }
 }
 
+// ========== FONCTIONS CHAT CORRIGÉES ==========
 function toggleChat() {
   const chatbox = document.getElementById('chatbox');
   chatVisible = !chatVisible;
@@ -1633,7 +1640,7 @@ function toggleChat() {
     if (activeChar) {
       setupChatListener();
     } else {
-      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
+      document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Connecte-toi avec un personnage pour chatter !</div>';
     }
   } else {
     chatbox.classList.remove('active');
@@ -1641,9 +1648,13 @@ function toggleChat() {
 }
 
 async function setupChatListener() {
-  if (!firebaseInitialized || !activeChar) return;
+  if (!firebaseInitialized || !activeChar) {
+    console.log("Firebase pas initialisé ou pas de personnage actif");
+    return;
+  }
   
   try {
+    console.log("🔍 Démarrage de l'écoute du chat...");
     const q = firebase.firestore().collection("chat").orderBy("timestamp", "asc");
     
     q.onSnapshot((snapshot) => {
@@ -1666,14 +1677,16 @@ async function setupChatListener() {
       
       chatMessages.scrollTop = chatMessages.scrollHeight;
     });
+    
+    console.log("✅ Écoute du chat activée");
   } catch (error) {
-    console.error("Erreur chat:", error);
+    console.error("❌ Erreur chat:", error);
   }
 }
 
 async function sendMessage() {
   if (!activeChar || !firebaseInitialized) {
-    alert(trad[lang].chatConnect);
+    alert("Connecte-toi avec un personnage pour chatter !");
     return;
   }
   
@@ -1683,6 +1696,7 @@ async function sendMessage() {
   if (!message) return;
   
   try {
+    console.log("📤 Envoi du message...");
     await firebase.firestore().collection("chat").add({
       user: activeChar.name,
       text: message,
@@ -1690,9 +1704,10 @@ async function sendMessage() {
     });
     
     chatInput.value = '';
+    console.log("✅ Message envoyé");
   } catch (error) {
-    console.error(trad[lang].messageError, error);
-    alert(trad[lang].messageError);
+    console.error("❌ Erreur d'envoi du message", error);
+    alert("Erreur d'envoi du message");
   }
 }
 
