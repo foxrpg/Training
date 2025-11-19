@@ -8,6 +8,10 @@
   <title>Fox RPG Beta Test</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
   <style>
+      /* Ajouter dans la section CSS */
+#navCreateBtn {
+  /* Ce style aide à identifier le bouton */
+}
     .prog-line{
       display:flex;
       align-items:center;
@@ -1062,15 +1066,18 @@ function updateNavigation() {
   const loginBtn = document.getElementById('navLoginBtn');
   const gameBtn = document.getElementById('navGame');
   const profileBtn = document.getElementById('navProfile');
+  const createBtn = document.querySelector('button[onclick="showPage(\'create\')"]');
   
   if (activeChar) {
-    // Utilisateur connecté : afficher Jeu et Profil, masquer Connexion
+    // Utilisateur connecté : afficher Jeu et Profil, masquer Connexion et Création
     loginBtn.style.display = 'none';
+    createBtn.style.display = 'none';
     gameBtn.style.display = 'block';
     profileBtn.style.display = 'block';
   } else {
-    // Utilisateur non connecté : afficher Connexion, masquer Jeu et Profil
+    // Utilisateur non connecté : afficher Connexion et Création, masquer Jeu et Profil
     loginBtn.style.display = 'block';
+    createBtn.style.display = 'block';
     gameBtn.style.display = 'none';
     profileBtn.style.display = 'none';
   }
@@ -1087,6 +1094,20 @@ function loginCharacter(charIndex) {
   }
   
   activeChar = characters[charIndex];
+  
+  // Mettre à jour la navigation (CELLE-CI MASQUERA "CRÉER UN PERSONNAGE")
+  updateNavigation();
+  
+  refresh();
+  renderLog();
+  renderAchievements();
+  renderWeeklyProgram();
+  checkGoalAchievement();
+  
+  showPage('game');
+  
+  console.log("✅ Personnage connecté");
+}
   
   // Mettre à jour la navigation
   updateNavigation();
@@ -1508,19 +1529,26 @@ function generateCustomProgram(level, dailyMinutes) {
     }
   };
 
-  // DÉTERMINATION DE LA TRANCHE AVEC GESTION D'ERREUR
-  const levels = ["10k", "9k", "8k", "7k", "6k", "5k", "4k", "3k", "2k", "1k", "1d", "2d", "3d", "4d", "5d", "6d", "7d", "8d", "9d"];
-  const index = levels.indexOf(level);
+// DÉTERMINATION DE LA TRANCHE AVEC GESTION D'ERREUR ROBUSTE
+const levels = ["10k", "9k", "8k", "7k", "6k", "5k", "4k", "3k", "2k", "1k", "1d", "2d", "3d", "4d", "5d", "6d", "7d", "8d", "9d"];
+const index = levels.indexOf(level);
+
+// Valeurs par défaut si niveau non trouvé
+let range = "10k-5k";
+if (index === -1) {
+  console.warn("Niveau non reconnu:", level, "- utilisation du programme 10k-5k par défaut");
+} else {
+  // Vérifier d'abord si les niveaux existent dans le tableau
+  const oneDIndex = levels.indexOf("1d");
+  const fiveKIndex = levels.indexOf("5k");
   
-  // Valeurs par défaut si niveau non trouvé
-  let range = "10k-5k";
-  if (index === -1) {
-    console.warn("Niveau non reconnu:", level, "- utilisation du programme 10k-5k par défaut");
-  } else if (index >= levels.indexOf("1d")) {
+  if (oneDIndex !== -1 && index >= oneDIndex) {
     range = "1d-5d";
-  } else if (index >= levels.indexOf("5k")) {
+  } else if (fiveKIndex !== -1 && index >= fiveKIndex) {
     range = "5k-1k";
   }
+  // Sinon, reste avec "10k-5k" par défaut
+}
 
   // DÉTERMINATION DU PALIER TEMPS
   let timeKey = 60;
@@ -2185,6 +2213,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
 
 
 
