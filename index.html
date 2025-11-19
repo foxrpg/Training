@@ -987,7 +987,13 @@ function setLang(l) {
   lang = l;
   
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
+  
+  // Activer le bon bouton - méthode plus robuste
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    if (btn.textContent.includes(l === 'fr' ? 'Français' : 'English')) {
+      btn.classList.add('active');
+    }
+  });
   
   Object.keys(trad[lang]).forEach(key => {
     const elements = document.querySelectorAll(`[id="${key}"]`);
@@ -1020,6 +1026,7 @@ function updateWelcomeStats() {
   document.getElementById('totalAchievements').textContent = totalAchievements;
 }
 
+// Connexion d'un personnage
 // Connexion utilisateur
 function loginUser() {
   const username = document.getElementById('loginUsername').value.trim();
@@ -1036,37 +1043,27 @@ function loginUser() {
   
   if (character) {
     const charIndex = characters.findIndex(c => c.id === character.id);
-    loginCharacter(charIndex);
+    if (charIndex !== -1) {
+      loginCharacter(charIndex);
+    } else {
+      alert("Erreur: Personnage non trouvé");
+    }
   } else {
     alert(trad[lang].wrongCredentials);
   }
 }
-
-// Charger les personnages
-function loadChars() {
-  const saved = localStorage.getItem('fox7d-chars');
-  if (saved) {
-    characters = JSON.parse(saved);
-    const savedActive = localStorage.getItem('fox7d-active');
-    if (savedActive) {
-      const activeIndex = characters.findIndex(c => c.id === savedActive);
-      if (activeIndex !== -1) {
-        loginCharacter(activeIndex);
-      }
-    }
-    updateWelcomeStats();
+function loginCharacter(charIndex) {
+  if (charIndex === undefined || charIndex === null || charIndex < 0) {
+    console.error("❌ Index de personnage invalide:", charIndex);
+    return;
   }
-}
-
-// Sauvegarder les personnages
-function saveChars() {
-  localStorage.setItem('fox7d-chars', JSON.stringify(characters));
-  updateWelcomeStats();
-}
-
-// Connexion d'un personnage
-function loginCharacter(index) {
-  activeChar = characters[index];
+  
+  if (!characters[charIndex]) {
+    console.error("❌ Personnage non trouvé à l'index:", charIndex);
+    return;
+  }
+  
+  activeChar = characters[charIndex];  // <-- UNE SEULE FOIS avec charIndex
   localStorage.setItem('fox7d-active', activeChar.id);
   
   document.getElementById('navProfile').style.display = 'block';
@@ -1079,16 +1076,14 @@ function loginCharacter(index) {
   
   showPage('game');
   
-  // Initialiser Firebase de façon asynchrone
-  initializeFirebase().then(() => {
-    console.log("✅ Firebase initialisé pour le chat");
-    // Mettre en place l'écoute du chat une fois Firebase prêt
-    if (activeChar) {
-      setupChatListener();
-    }
-  }).catch(error => {
-    console.log("❌ Firebase non disponible, mode hors ligne");
-  });
+  // Initialiser Firebase UNE SEULE FOIS
+  if (!firebaseInitialized) {
+    initializeFirebase().then(() => {
+      console.log("✅ Firebase initialisé pour le chat");
+    }).catch(error => {
+      console.log("❌ Firebase non disponible:", error);
+    });
+  }
 }
 
 // Créer un personnage
@@ -1125,6 +1120,28 @@ function createCharacter() {
   
   characters.push(newChar);
   saveChars();
+
+  // Charger les personnages
+function loadChars() {
+  const saved = localStorage.getItem('fox7d-chars');
+  if (saved) {
+    characters = JSON.parse(saved);
+    const savedActive = localStorage.getItem('fox7d-active');
+    if (savedActive) {
+      const activeIndex = characters.findIndex(c => c.id === savedActive);
+      if (activeIndex !== -1) {
+        loginCharacter(activeIndex);
+      }
+    }
+    updateWelcomeStats();
+  }
+}
+
+// Sauvegarder les personnages
+function saveChars() {
+  localStorage.setItem('fox7d-chars', JSON.stringify(characters));
+  updateWelcomeStats();
+}
   
   const charIndex = characters.findIndex(c => c.id === newChar.id);
   loginCharacter(charIndex);
@@ -1585,53 +1602,82 @@ function resetData() {
 }
 
 // ========== INITIALISATION FIREBASE CORRIGÉE ==========
-async function initializeFirebase() {
-  if (firebaseInitialized) {
-    console.log("✅ Firebase déjà initialisé");
-    return true;
+let firebaseInitializationPromise = null;
+
+function initializeFirebase() {
+  // Éviter les initialisations multiples
+  if (firebaseInitializationPromise) {
+    return firebaseInitializationPromise;
   }
   
-  try {
-    console.log("🚀 Début de l'initialisation Firebase...");
-
-    // Vérifier si Firebase est déjà disponible
-    if (typeof firebase === 'undefined') {
-      console.log("📦 Firebase non détecté, chargement du script complet...");
-      
-      // Charger la version COMPAT avec les scripts classiques
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js";
-        script.onload = () => {
-          console.log("✅ firebase-app.js chargé");
-          resolve();
-        };
-        script.onerror = () => {
-          console.error("❌ Erreur chargement firebase-app.js");
-          reject(new Error('Failed to load firebase-app.js'));
-        };
-        document.head.appendChild(script);
-      });
-
-      // Charger firestore COMPAT
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js";
-        script.onload = () => {
-          console.log("✅ firebase-firestore.js chargé");
-          resolve();
-        };
-        script.onerror = () => {
-          console.error("❌ Erreur chargement firebase-firestore.js");
-          reject(new Error('Failed to load firebase-firestore.js'));
-        };
-        document.head.appendChild(script);
-      });
-    } else {
-      console.log("✅ Firebase déjà chargé");
+  firebaseInitializationPromise = new Promise((resolve, reject) => {
+    console.log("🚀 INITIALISATION FIREBASE - DÉBUT");
+    
+    if (firebaseInitialized) {
+      console.log("✅ Firebase déjà initialisé");
+      resolve(true);
+      return;
     }
+    
+    // Vérifier si Firebase est déjà initialisé
+    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+      console.log("✅ Firebase déjà initialisé dans la page");
+      db = firebase.firestore();
+      firebaseInitialized = true;
+      resolve(true);
+      return;
+    }
+    
+    console.log("📦 Chargement des scripts Firebase...");
+    
+    // Vérifier si les scripts sont déjà en cours de chargement
+    if (document.querySelector('script[src*="firebase-app.js"]')) {
+      console.log("⚠️ Scripts Firebase déjà en cours de chargement");
+      // Attendre que les scripts se chargent
+      const checkInterval = setInterval(() => {
+        if (typeof firebase !== 'undefined' && typeof firebase.firestore !== 'undefined') {
+          clearInterval(checkInterval);
+          initFirebaseApp();
+          resolve(true);
+        }
+      }, 100);
+      return;
+    }
+    
+    // Charger Firebase App
+    const script1 = document.createElement('script');
+    script1.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js";
+    script1.onload = () => {
+      console.log("✅ firebase-app.js chargé");
+      
+      // Charger Firestore
+      const script2 = document.createElement('script');
+      script2.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js";
+      script2.onload = () => {
+        console.log("✅ firebase-firestore.js chargé");
+        initFirebaseApp();
+        resolve(true);
+      };
+      script2.onerror = () => {
+        console.error("❌ Erreur chargement firestore");
+        reject(new Error('Failed to load firebase-firestore.js'));
+      };
+      document.head.appendChild(script2);
+    };
+    script1.onerror = () => {
+      console.error("❌ Erreur chargement firebase");
+      reject(new Error('Failed to load firebase-app.js'));
+    };
+    document.head.appendChild(script1);
+  });
+  
+  return firebaseInitializationPromise;
+}
 
-    // Configuration Firebase
+function initFirebaseApp() {
+  try {
+    console.log("🔄 Initialisation de l'app Firebase...");
+    
     const firebaseConfig = {
       apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
       authDomain: "fox-rpg-406d6.firebaseapp.com",
@@ -1640,25 +1686,52 @@ async function initializeFirebase() {
       messagingSenderId: "218915576778",
       appId: "1:218915576778:web:8b03757d20b8451e428d33"
     };
-
-    console.log("🔄 Initialisation de l'app Firebase...");
     
-    // Initialiser Firebase
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
+    // Vérifier une dernière fois avant d'initialiser
+    if (firebase.apps.length > 0) {
+      console.log("✅ Utilisation de l'app Firebase existante");
+      db = firebase.firestore();
+    } else {
+      console.log("✅ Création d'une nouvelle app Firebase");
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+    }
     
-    console.log("🔥 Firebase initialisé avec succès !");
     firebaseInitialized = true;
+    console.log("🔥 Firebase initialisé avec succès !");
     
-    return true;
+    // Tester la connexion
+    testFirebaseConnection();
     
   } catch (error) {
-    console.error("❌ Erreur critique d'initialisation Firebase:", error);
+    console.error("❌ Erreur initialisation Firebase:", error);
     firebaseInitialized = false;
-    return false;
   }
 }
 
+function testFirebaseConnection() {
+  if (!db) {
+    console.log("❌ Firestore non disponible pour le test");
+    return;
+  }
+  
+  console.log("🧪 Test de connexion Firestore...");
+  
+  const testData = {
+    message: "Test de connexion Firebase - " + new Date().toISOString(),
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    type: "connection_test",
+    randomId: Math.random().toString(36).substring(7)
+  };
+  
+  db.collection("connection_tests").add(testData)
+    .then((docRef) => {
+      console.log("✅ Test d'écriture réussi, ID:", docRef.id);
+    })
+    .catch((error) => {
+      console.error("❌ Test Firestore échoué:", error);
+    });
+}
 // ========== FONCTIONS CHAT SIMPLIFIÉES ==========
 function toggleChat() {
   const chatbox = document.getElementById('chatbox');
@@ -1676,7 +1749,25 @@ function toggleChat() {
   }
 }
 
-async function setupChatListener() {
+function setupChatListener() {
+  if (!activeChar) {
+    console.log("❌ Pas de personnage actif");
+    document.getElementById('chatMessages').innerHTML = 
+      '<div class="chat-message">' + trad[lang].chatConnect + '</div>';
+    return;
+  }
+  
+  if (!firebaseInitialized || !db) {
+    console.log("❌ Firebase non initialisé, tentative d'initialisation...");
+    document.getElementById('chatMessages').innerHTML = 
+      '<div class="chat-message">Initialisation du chat en cours...</div>';
+    
+    initializeFirebase().then(() => {
+      // Rappeler setupChatListener une fois Firebase prêt
+      setTimeout(setupChatListener, 500);
+    });
+    return;
+  }
   if (!firebaseInitialized || !activeChar) {
     console.log("❌ Firebase non initialisé ou pas de personnage");
     document.getElementById('chatMessages').innerHTML = '<div class="chat-message">Chat non disponible</div>';
@@ -1764,6 +1855,11 @@ async function sendMessage() {
   }
 }
 
+
+ // Initialiser l'application
+
+initializeFirebase();
+
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
   const chatInput = document.getElementById('chatInput');
@@ -1780,7 +1876,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addLogEntry();
   });
   
-  loadChars();
+  loadChars();  // ← MAINTENANT loadChars est définie
   
   let foxClicks = 0;
   const activeEmoji = document.getElementById('activeEmoji');
@@ -1817,6 +1913,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   initializeFirebase();
 });
+
 </script>
 </body>
 </html>
