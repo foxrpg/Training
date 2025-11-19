@@ -1076,15 +1076,9 @@ function loginCharacter(charIndex) {
   
   showPage('game');
   
-  // Initialiser Firebase UNE SEULE FOIS
-  if (!firebaseInitialized) {
-    initializeFirebase().then(() => {
-      console.log("✅ Firebase initialisé pour le chat");
-    }).catch(error => {
-      console.log("❌ Firebase non disponible:", error);
-    });
-  }
-}
+  // Firebase est déjà initialisé au chargement de la page
+// Pas besoin de le réinitialiser ici
+console.log("✅ Firebase prêt pour le chat");
 
 // Créer un personnage
 function createCharacter() {
@@ -1757,10 +1751,12 @@ function setupChatListener() {
     return;
   }
   
-  if (!firebaseInitialized || !db) {
-    console.log("❌ Firebase non initialisé, tentative d'initialisation...");
-    document.getElementById('chatMessages').innerHTML = 
-      '<div class="chat-message">Initialisation du chat en cours...</div>';
+if (!firebaseInitialized || !db) {
+  console.log("❌ Firebase pas encore prêt, réessayez dans quelques secondes");
+  document.getElementById('chatMessages').innerHTML = 
+    '<div class="chat-message">Chat en cours de chargement... Réessayez.</div>';
+  return;
+}
     
     initializeFirebase().then(() => {
       // Rappeler setupChatListener une fois Firebase prêt
@@ -1917,3 +1913,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
