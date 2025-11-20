@@ -1135,31 +1135,7 @@ function displayStreak(streak, multiplier) {
         refresh();
     }
 }
-    
-    // Ajouter à l'interface
-    const existingStreak = document.getElementById('streakDisplay');
-    if (existingStreak) {
-        existingStreak.innerHTML = streakHTML;
-    } else {
-        const streakDiv = document.createElement('div');
-        streakDiv.id = 'streakDisplay';
-        streakDiv.innerHTML = streakHTML;
-        document.querySelector('#activeEmoji').parentNode.appendChild(streakDiv);
-    }
-    
-    // Récompenses spéciales
-    if (streak === 7) {
-        alert("🎉 Streak de 7 jours ! +20% XP permanent !");
-    }
-    if (streak === 30) {
-        alert("🏆 STREAK LEGENDAIRE ! Avatar Fox On Fire débloqué !");
-        activeChar.avatar = "🦊🔥";
-        db.collection("characters").doc(activeChar.id).update({
-            avatar: "🦊🔥"
-        });
-        refresh();
-    }
-
+// ⬅️ ICI, il ne doit plus y avoir de code après cette ligne !
         // ========== TRADUCTIONS ==========
         const trad = {
             fr: {
