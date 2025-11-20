@@ -1017,6 +1017,87 @@
         let lang = 'fr';
         let firebaseInitialized = false;
 
+        // ========== STREAK SYSTEM ==========
+function updateStreak() {
+    if (!activeChar) return;
+    
+    const today = new Date().toDateString();
+    const lastLogin = activeChar.lastLogin ? new Date(activeChar.lastLogin.toDate ? activeChar.lastLogin.toDate() : activeChar.lastLogin).toDateString() : null;
+    
+    let streak = activeChar.streak || 0;
+    let streakMultiplier = activeChar.streakMultiplier || 1;
+    
+    // Vérifier si c'est un nouveau jour
+    if (lastLogin !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (lastLogin === yesterday.toDateString()) {
+            // Jour consécutif
+            streak++;
+        } else if (lastLogin && lastLogin !== today) {
+            // Rupture du streak
+            streak = 1;
+        } else {
+            // Premier login
+            streak = 1;
+        }
+        
+        // Calculer le multiplicateur
+        streakMultiplier = 1 + (Math.floor(streak / 7) * 0.2); // +20% chaque semaine
+        
+        // Sauvegarder
+        activeChar.streak = streak;
+        activeChar.streakMultiplier = streakMultiplier;
+        activeChar.lastLogin = new Date();
+        
+        db.collection("characters").doc(activeChar.id).update({
+            streak: streak,
+            streakMultiplier: streakMultiplier,
+            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+    
+    // Afficher le streak
+    displayStreak(streak, streakMultiplier);
+}
+
+function displayStreak(streak, multiplier) {
+    const streakHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+            <div style="font-size: 1.2rem;">${streak >= 7 ? '🔥' : '⚡'}</div>
+            <div>
+                <div style="font-weight: bold; font-size: 0.9rem;">Streak: ${streak} jours</div>
+                <div style="font-size: 0.7rem; opacity: 0.8;">Multiplicateur XP: ${multiplier}x</div>
+            </div>
+        </div>
+    `;
+    
+    // Ajouter à l'interface
+    const existingStreak = document.getElementById('streakDisplay');
+    if (existingStreak) {
+        existingStreak.innerHTML = streakHTML;
+    } else {
+        const streakDiv = document.createElement('div');
+        streakDiv.id = 'streakDisplay';
+        streakDiv.innerHTML = streakHTML;
+        document.querySelector('#activeEmoji').parentNode.appendChild(streakDiv);
+    }
+    
+    // Récompenses spéciales
+    if (streak === 7) {
+        alert("🎉 Streak de 7 jours ! +20% XP permanent !");
+    }
+    if (streak === 30) {
+        alert("🏆 STREAK LEGENDAIRE ! Avatar Fox On Fire débloqué !");
+        activeChar.avatar = "🦊🔥";
+        db.collection("characters").doc(activeChar.id).update({
+            avatar: "🦊🔥"
+        });
+        refresh();
+    }
+}
+
         // ========== TRADUCTIONS ==========
         const trad = {
             fr: {
@@ -1082,6 +1163,97 @@
                 trainTimeLabelProfile: "Daily study time",
             }
         };
+
+        // ========== SPACED REPETITION SYSTEM ==========
+const repetitionIntervals = [1, 3, 7, 14, 30]; // jours
+
+function addSpacedRepetition(topic, content, mastery = 0) {
+    if (!activeChar) return;
+    
+    const nextReview = new Date();
+    nextReview.setDate(nextReview.getDate() + repetitionIntervals[mastery]);
+    
+    const reviewItem = {
+        id: Date.now().toString(),
+        topic: topic,
+        content: content,
+        mastery: mastery,
+        nextReview: nextReview,
+        createdAt: new Date()
+    };
+    
+    // Sauvegarder
+    const reviews = activeChar.spacedReviews || [];
+    reviews.push(reviewItem);
+    activeChar.spacedReviews = reviews;
+    
+    db.collection("characters").doc(activeChar.id).update({
+        spacedReviews: reviews
+    });
+}
+
+function checkDailyReviews() {
+    if (!activeChar || !activeChar.spacedReviews) return;
+    
+    const today = new Date();
+    const dueReviews = activeChar.spacedReviews.filter(review => 
+        new Date(review.nextReview) <= today
+    );
+    
+    if (dueReviews.length > 0) {
+        showReviewNotification(dueReviews);
+    }
+}
+
+function showReviewNotification(reviews) {
+    const review = reviews[0]; // Prendre la plus ancienne
+    
+    const notificationHTML = `
+        <div style="position: fixed; top: 20px; right: 20px; background: var(--rouge); color: white; padding: 1rem; border-radius: var(--radius); z-index: 10000; box-shadow: var(--shadow);">
+            <h4>🦊 Révision du jour</h4>
+            <p><strong>${review.topic}:</strong> ${review.content}</p>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <button onclick="reviewMastered('${review.id}')" style="padding: 0.5rem; background: #00ff88; color: black; border: none; border-radius: 6px;">Je maîtrise</button>
+                <button onclick="reviewFailed('${review.id}')" style="padding: 0.5rem; background: #666; color: white; border: none; border-radius: 6px;">À revoir</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', notificationHTML);
+}
+
+function reviewMastered(reviewId) {
+    const review = activeChar.spacedReviews.find(r => r.id === reviewId);
+    if (review) {
+        review.mastery = Math.min(review.mastery + 1, repetitionIntervals.length - 1);
+        updateNextReview(review);
+        removeNotification();
+    }
+}
+
+function reviewFailed(reviewId) {
+    const review = activeChar.spacedReviews.find(r => r.id === reviewId);
+    if (review) {
+        review.mastery = Math.max(review.mastery - 1, 0);
+        updateNextReview(review);
+        removeNotification();
+    }
+}
+
+function updateNextReview(review) {
+    const nextReview = new Date();
+    nextReview.setDate(nextReview.getDate() + repetitionIntervals[review.mastery]);
+    review.nextReview = nextReview;
+    
+    db.collection("characters").doc(activeChar.id).update({
+        spacedReviews: activeChar.spacedReviews
+    });
+}
+
+function removeNotification() {
+    const notification = document.querySelector('[style*="position: fixed; top: 20px; right: 20px;"]');
+    if (notification) notification.remove();
+}
 
         // ========== FONCTIONS DE BASE ==========
         function showPage(name) {
@@ -1350,8 +1522,6 @@
             const xpPercent = Math.min((activeChar.xp / 1000) * 100, 100);
             document.getElementById('xpFill').style.width = xpPercent + '%';
             document.getElementById('xpText').textContent = `${activeChar.xp} / 1000 XP`;
-            
-            updateProgress();
         }
 
         function updateProgress() {
@@ -1943,6 +2113,167 @@ function generateCustomProgram(level, dailyMinutes) {
             document.getElementById('logForm').reset();
         }
 
+            // ⭐⭐ AJOUTER CES LIGNES À LA FIN DE addLogEntry() ⭐⭐
+    updateStreak();
+    async function addLogEntry() {
+    if (!activeChar) return;
+    
+    const day = document.getElementById('logDay').value;
+    const games = parseInt(document.getElementById('games').value);
+    const wins = parseInt(document.getElementById('wins').value);
+    const tsu = parseInt(document.getElementById('tsu').value);
+    const time = parseInt(document.getElementById('time').value);
+    const oppLevel = document.getElementById('oppLevel').value;
+    const notes = document.getElementById('notes').value;
+    
+    if (wins > games) {
+        alert("Le nombre de victoires ne peut pas être supérieur au nombre de parties !");
+        return;
+    }
+    
+    const xpGain = games * 10 + tsu * 2 + Math.floor(time / 10);
+    
+    try {
+        // Sauvegarder les données d'entraînement dans Firebase
+        const trainingData = {
+            day: day,
+            games: games,
+            wins: wins,
+            tsu: tsu,
+            time: time,
+            oppLevel: oppLevel,
+            notes: notes,
+            date: new Date().toISOString(),
+            xpGain: xpGain
+        };
+        
+        await db.collection("training_logs").add({
+            ...trainingData,
+            characterId: activeChar.id,
+            characterName: activeChar.name,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Mettre à jour l'XP dans Firebase
+        const newXp = activeChar.xp + xpGain;
+        await db.collection("characters").doc(activeChar.id).update({
+            xp: newXp,
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Mettre à jour localement
+        activeChar.xp = newXp;
+        
+    } catch (error) {
+        console.error("Erreur sauvegarde Firebase:", error);
+        alert("Erreur de sauvegarde: " + error.message);
+        return;
+    }
+    
+    // Sauvegarde locale du carnet (optionnel)
+    const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
+    charData[day] = {
+        games: games,
+        wins: wins,
+        tsu: tsu,
+        time: time,
+        oppLevel: oppLevel,
+        notes: notes,
+        date: new Date().toISOString()
+    };
+    
+    localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
+    
+    checkAchievements(charData);
+    refresh();
+    renderLog();
+    document.getElementById('logForm').reset();
+    
+    // ⭐⭐ AJOUTER CES LIGNES À LA FIN ⭐⭐
+    updateStreak();
+    
+    // Analyser les notes pour créer des révisions automatiques
+    const notesText = document.getElementById('notes').value.toLowerCase();
+    if (notesText.includes("invasion") || notesText.includes("envah")) {
+        addSpacedRepetition('invasion', 'Techniques d\'invasion: timing et support');
+    }
+    if (notesText.includes("yose") || notesText.includes("fin")) {
+        addSpacedRepetition('yose', 'Ordre des yose: jouer le plus gros premier');
+    }
+    if (notesText.includes("joseki") || notesText.includes("coin")) {
+        addSpacedRepetition('joseki', 'Choisis des joseki qui correspondent à ton style global');
+    }
+    if (notesText.includes("tesuji") || notesText.includes("coup technique")) {
+        addSpacedRepetition('tesuji', 'Les tesuji créent souvent des formes mutantes difficiles à contrer');
+    }
+}
+    
+    // Analyser les notes pour créer des révisions automatiques
+    const notes = document.getElementById('notes').value.toLowerCase();
+    if (notes.includes("invasion") || notes.includes("envah")) {
+        addSpacedRepetition('invasion', 'Techniques d\'invasion: timing et support');
+    }
+    if (notes.includes("yose") || notes.includes("fin")) {
+        addSpacedRepetition('yose', 'Ordre des yose: jouer le plus gros premier');
+    }
+    if (notes.includes("joseki") || notes.includes("coin")) {
+        addSpacedRepetition('joseki', 'Choisis des joseki qui correspondent à ton style global');
+    }
+    if (notes.includes("tesuji") || notes.includes("coup technique")) {
+        addSpacedRepetition('tesuji', 'Les tesuji créent souvent des formes mutantes difficiles à contrer');
+    }
+
+// ========== AJOUTER ICI LE FEEDBACK LOOP ==========
+function showQuickFeedback(gameData) {
+    const feedbackHTML = `
+        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--glass); backdrop-filter: blur(10px); padding: 2rem; border-radius: var(--radius); z-index: 10000; border: 2px solid var(--rouge);">
+            <h3>🦊 Qu'as-tu appris de cette partie ?</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0;">
+                <button class="feedback-tag" onclick="tagLearning('invasion')">Invasion</button>
+                <button class="feedback-tag" onclick="tagLearning('joseki')">Joseki</button>
+                <button class="feedback-tag" onclick="tagLearning('yose')">Yose</button>
+                <button class="feedback-tag" onclick="tagLearning('tesuji')">Tesuji</button>
+                <button class="feedback-tag" onclick="tagLearning('life_death')">Vie & Mort</button>
+                <button class="feedback-tag" onclick="tagLearning('direction')">Direction</button>
+            </div>
+            <button onclick="closeFeedback()" style="margin-top: 1rem; padding: 0.5rem; background: #666; color: white; border: none; border-radius: 6px;">Fermer</button>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', feedbackHTML);
+}
+
+function tagLearning(tag) {
+    // Ajouter au spaced repetition
+    const lessons = {
+        'invasion': 'Les invasions réussissent mieux quand tu as un support nearby',
+        'joseki': 'Choisis des joseki qui correspondent à ton style global',
+        'yose': 'Joue le plus gros yose en premier, même s\'il semble petit',
+        'tesuji': 'Les tesuji créent souvent des formes mutantes difficiles à contrer',
+        'life_death': 'Un groupe vit avec 2 yeux ou une connexion sûre',
+        'direction': 'Joue du côté où ton adversaire veut aller'
+    };
+    
+    addSpacedRepetition(tag, lessons[tag]);
+    
+    // Fermer le feedback
+    closeFeedback();
+    
+    // XP bonus
+    if (activeChar) {
+        activeChar.xp += 5;
+        db.collection("characters").doc(activeChar.id).update({
+            xp: firebase.firestore.FieldValue.increment(5)
+        });
+        refresh();
+    }
+}
+
+function closeFeedback() {
+    const feedback = document.querySelector('[style*="position: fixed; top: 50%; left: 50%;"]');
+    if (feedback) feedback.remove();
+}
+
         function renderLog() {
             if (!activeChar) return;
             
@@ -2333,13 +2664,18 @@ function generateCustomProgram(level, dailyMinutes) {
                 console.log("✅ Firebase initialisé avec succès !");
                 // Charger les personnages depuis Firebase
                 loadChars();
-            }).catch(error => {
-                console.error("❌ Firebase non disponible:", error);
-                alert("L'application nécessite une connexion Internet pour fonctionner.");
-            });
-            
-            console.log("✅ Fox RPG initialisé !");
+                
+                if (activeChar) {
+                updateStreak();
+                checkDailyReviews();
+            }
         });
+    }).catch(error => {
+    console.error("❌ Firebase non disponible:", error);
+    alert("L'application nécessite une connexion Internet pour fonctionner.");
+});
+
+console.log("✅ Fox RPG initialisé !");
     </script>
 </body>
 </html>
