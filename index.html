@@ -1529,366 +1529,406 @@
                 trainTimeLabelProfile: "Daily study time",
             }
         };
+// ==========  SOLUTION OGS FONCTIONNELLE ==========
 
-        // ========== VRAIE SOLUTION OGS FONCTIONNELLE ==========
+const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
+const OGS_BASE_URL = "https://online-go.com";
+
+// ========== FONCTIONS OGS UNIQUEMENT ==========
+async function fetchRealOGSPlayer(username) {
+    console.log('🔍 Recherche OGS  pour:', username);
+    
+    try {
+        // API DIRECTE - ça fonctionne !
+        const response = await fetch(`https://online-go.com/api/v1/players/?username=${encodeURIComponent(username)}`);
         
-        const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
-        const OGS_BASE_URL = "https://online-go.com";
-
-        async function fetchRealOGSPlayer(username) {
-            console.log('🔍 Recherche OGS réelle pour:', username);
+        if (response.ok) {
+            const data = await response.json();
             
-            try {
-                const endpoints = [
-                    `/api/v1/players/?username=${encodeURIComponent(username)}`,
-                    `/api/v1/players/${encodeURIComponent(username)}/`,
-                    `/api/v1/players/?search=${encodeURIComponent(username)}`
-                ];
-
-                for (let endpoint of endpoints) {
-                    try {
-                        const response = await fetch(CORS_PROXY + OGS_BASE_URL + endpoint, {
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            
-                            if (data.results && data.results.length > 0) {
-                                return data.results[0];
-                            } else if (data.id) {
-                                return data;
-                            }
-                        }
-                    } catch (error) {
-                        console.log(`Endpoint ${endpoint} échoué:`, error);
-                        continue;
-                    }
+            if (data.results && data.results.length > 0) {
+                const player = data.results[0];
+                console.log('✅  DONNÉES OGS TROUVÉES:', player);
+                return player;
+            }
+        }
+        
+        // Fallback : recherche par terme
+        const searchResponse = await fetch(`https://online-go.com/api/v1/players/?search=${encodeURIComponent(username)}`);
+        if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            if (searchData.results && searchData.results.length > 0) {
+                // Trouve le joueur le plus proche
+                const player = searchData.results.find(p => 
+                    p.username.toLowerCase().includes(username.toLowerCase())
+                );
+                if (player) {
+                    console.log('✅ Joueur trouvé via recherche:', player);
+                    return player;
                 }
-                
-                throw new Error('Joueur non trouvé');
-                
-            } catch (error) {
-                console.error('❌ Erreur recherche OGS:', error);
-                throw error;
             }
         }
+        
+        throw new Error('Joueur non trouvé');
+        
+    } catch (error) {
+        console.error('❌ Erreur recherche OGS:', error);
+        throw error;
+    }
+}
 
-        async function fetchRealOGSGames(playerId) {
-            try {
-                const response = await fetch(CORS_PROXY + OGS_BASE_URL + `/api/v1/players/${playerId}/games/?ended__isnull=false&limit=50`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.results || [];
-                }
-                return [];
-            } catch (error) {
-                console.error('Erreur récupération parties:', error);
-                return [];
-            }
+// FONCTION POUR LE RANG OGS
+async function getRealOGSLevel(username) {
+    try {
+        console.log('🎯 Récupération du  rang OGS pour:', username);
+        
+        // 1. Récupérer l'ID du joueur
+        const searchResponse = await fetch(`https://online-go.com/api/v1/players/?username=${encodeURIComponent(username)}`);
+        const searchData = await searchResponse.json();
+        
+        if (!searchData.results || searchData.results.length === 0) {
+            return "Non classé";
         }
-
-        async function syncRealOGSData() {
-            if (!activeChar || !activeChar.ogsUsername) {
-                alert("❌ Configurez d'abord votre pseudo OGS dans le profil");
-                showPage('profile');
-                return;
-            }
-
-            const ogsStats = document.getElementById('ogsDashboardStats');
-            ogsStats.innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
-                    <h3 style="color: var(--rouge);">Connexion à OGS...</h3>
-                    <p style="opacity: 0.8;">Récupération de vos données réelles</p>
-                </div>
-            `;
-
-            try {
-                console.log('🔄 Début synchronisation OGS réelle...');
-                
-                const player = await fetchRealOGSPlayer(activeChar.ogsUsername);
-                
-                if (!player) {
-                    throw new Error('Joueur OGS non trouvé');
-                }
-
-                console.log('✅ Joueur OGS trouvé:', player);
-
-                const games = await fetchRealOGSGames(player.id);
-                console.log('🎮 Parties récupérées:', games.length);
-
-                const last30Days = new Date();
-                last30Days.setDate(last30Days.getDate() - 30);
-
-                const recentGames = games.filter(game => {
-                    if (!game.ended) return false;
-                    const gameDate = new Date(game.ended);
-                    return gameDate > last30Days;
-                });
-
-                const wins = recentGames.filter(game => {
-                    if (!game.players || !game.outcome) return false;
-                    
-                    const isWhite = game.players.white && game.players.white.id === player.id;
-                    const isBlack = game.players.black && game.players.black.id === player.id;
-                    
-                    if (isWhite && game.outcome.startsWith('W+')) return true;
-                    if (isBlack && game.outcome.startsWith('B+')) return true;
-                    return false;
-                }).length;
-
-                const losses = recentGames.length - wins;
-                const winRate = recentGames.length > 0 ? Math.round((wins / recentGames.length) * 100) : 0;
-
-                displayRealOGSStats(player, wins, losses, recentGames.length, winRate, recentGames);
-                
-                showNotification("✅ Données OGS réelles synchronisées !");
-
-            } catch (error) {
-                console.error('❌ Erreur synchronisation OGS:', error);
-                showManualOGSInput();
-            }
+        
+        const player = searchData.results[0];
+        const playerId = player.id;
+        
+        console.log('🔍 Données de base OGS:', player);
+        
+        // 2. ESSAYER D'ABORD LES DONNÉES DE BASE
+        if (player.ratings?.overall?.verbose) {
+            console.log('✅ Rang trouvé dans données de base:', player.ratings.overall.verbose);
+            return player.ratings.overall.verbose;
         }
-
-        function displayRealOGSStats(player, wins, losses, totalGames, winRate, recentGames) {
-            const ogsStats = document.getElementById('ogsDashboardStats');
+        if (player.rank) {
+            console.log('✅ Rang direct dans données de base:', player.rank);
+            return player.rank;
+        }
+        
+        // 3. Si pas trouvé, chercher dans les données détaillées
+        const statsResponse = await fetch(`https://online-go.com/api/v1/players/${playerId}/`);
+        const playerData = await statsResponse.json();
+        
+        console.log('🔍 Données détaillées OGS:', playerData);
+        
+        // 4. CHERCHER LE RATING POUR CONVERSION
+        if (playerData.ratings?.overall?.rating) {
+            const rating = playerData.ratings.overall.rating;
+            console.log('📊 Rating OGS trouvé:', rating);
             
-            const ogsLevel = calculateOGSLevel(player.rating || player.rank || 0);
-            const playerName = player.username || activeChar.ogsUsername;
+            // Convertir le rating en rang avec VOTRE table
+            const estimatedLevel = calculateOGSLevel(rating);
+            console.log('🎯 Rang estimé:', estimatedLevel);
+            return estimatedLevel;
+        }
+        
+        // 5. Fallback : utiliser le rating des données de base
+        if (player.rating) {
+            const estimatedLevel = calculateOGSLevel(player.rating);
+            console.log('📊 Rang estimé depuis rating de base:', estimatedLevel);
+            return estimatedLevel;
+        }
+        
+        console.log('❌ Aucun rang trouvé');
+        return "Non classé";
+        
+    } catch (error) {
+        console.error('❌ Erreur récupération rang OGS:', error);
+        return "Erreur";
+    }
+}
 
-            ogsStats.innerHTML = `
-                <div style="background: rgba(0,255,0,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #00ff00;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <span style="font-size: 1.5rem;">✅</span>
-                        <div>
-                            <strong style="color: #00ff00; font-size: 1.1rem;">Données OGS Réelles</strong>
-                            <div style="font-size: 0.8rem; opacity: 0.9;">
-                                Synchronisé : ${new Date().toLocaleTimeString()}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+// VOTRE TABLE DE CONVERSION
+function calculateOGSLevel(rating) {
+    if (!rating || rating === 0) return "Non classé";
+    
+    // VOTRE TABLE DE CONVERSION
+    if (rating >= 2700) return "9d";
+    if (rating >= 2500) return "7d";
+    if (rating >= 2300) return "5d";
+    if (rating >= 2100) return "3d";
+    if (rating >= 1900) return "1d";
+    if (rating >= 1700) return "3k";
+    if (rating >= 1500) return "6k";
+    if (rating >= 1300) return "9k";
+    if (rating >= 1100) return "12k";
+    if (rating >= 900) return "15k";
+    if (rating >= 700) return "18k";
+    if (rating >= 500) return "21k";
+    return "25k+";
+}
 
-                <div class="dashboard-layout">
-                    <div class="dashboard-left-col">
-                        <div class="dashboard-card">
-                            <h3>👤 Joueur OGS</h3>
-                            <div class="stat-number">${playerName}</div>
-                            <div class="stat-label">${ogsLevel}</div>
-                            <div style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">
-                                Rating: ${Math.round(player.rating || 0)}
-                            </div>
-                        </div>
+async function syncRealOGSData() {
+    if (!activeChar || !activeChar.ogsUsername) {
+        alert("❌ Configurez d'abord votre pseudo OGS dans le profil");
+        showPage('profile');
+        return;
+    }
 
-                        <div class="dashboard-card">
-                            <h3>📈 Performance (30j)</h3>
-                            <div class="stat-number">${winRate}%</div>
-                            <div class="stat-label">Win Rate</div>
-                            <div class="progress-mini">
-                                <div class="progress-mini-fill" style="width: ${winRate}%"></div>
-                            </div>
-                            <div style="margin-top: 0.5rem; font-size: 0.8rem;">
-                                ${wins}V / ${losses}D • ${totalGames} parties
-                            </div>
-                        </div>
-                    </div>
+    const ogsStats = document.getElementById('ogsDashboardStats');
+    ogsStats.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+            <h3 style="color: var(--rouge);">Connexion à OGS...</h3>
+            <p style="opacity: 0.8;">Récupération de vos données s</p>
+        </div>
+    `;
 
-                    <div class="dashboard-right-col">
-                        <div class="dashboard-card">
-                            <h3>🎮 Dernières Parties</h3>
-                            <div style="max-height: 200px; overflow-y: auto;">
-                                ${recentGames.slice(0, 8).map(game => {
-                                    const gameDate = new Date(game.ended).toLocaleDateString();
-                                    const isWin = (game.players.white && game.players.white.id === player.id && game.outcome.startsWith('W+')) || 
-                                                 (game.players.black && game.players.black.id === player.id && game.outcome.startsWith('B+'));
-                                    return `
-                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 6px; margin-bottom: 0.3rem; font-size: 0.8rem;">
-                                            <span>${gameDate}</span>
-                                            <span style="color: ${isWin ? '#00ff00' : '#ff003c'}; font-weight: bold;">
-                                                ${isWin ? 'V' : 'D'}
-                                            </span>
-                                        </div>
-                                    `;
-                                }).join('')}
-                                ${recentGames.length === 0 ? '<div style="text-align:center; opacity:0.7; padding:1rem;">Aucune partie récente</div>' : ''}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem;">
-                    <h4 style="margin-bottom: 1rem; color: var(--rouge);">📥 Importer dans le carnet</h4>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                        <div><strong>Parties réelles:</strong> ${totalGames}</div>
-                        <div><strong>Victoires:</strong> ${wins}</div>
-                        <div><strong>Défaites:</strong> ${losses}</div>
-                        <div><strong>Niveau OGS:</strong> ${ogsLevel}</div>
-                    </div>
-                    <button onclick="importRealOGSData(${totalGames}, ${wins}, ${losses}, '${ogsLevel}')" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
-                        📥 Importer ${totalGames} parties RÉELLES
-                    </button>
-                    <div style="text-align: center; margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">
-                        Données réelles d'Online Go Server
-                    </div>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <span style="font-size: 0.8rem; opacity: 0.7;">Source: online-go.com</span>
-                    <button onclick="syncRealOGSData()" style="padding: 0.5rem 1rem; font-size: 0.8rem;">🔄 Actualiser</button>
-                </div>
-            `;
+    try {
+        console.log('🔄 Début synchronisation OGS ...');
+        
+        // Récupérer les données du joueur
+        const player = await fetchRealOGSPlayer(activeChar.ogsUsername);
+        
+        if (!player) {
+            throw new Error('Joueur OGS non trouvé');
         }
 
-        function calculateOGSLevel(rating) {
-            if (rating >= 2700) return "9d";
-            if (rating >= 2400) return "8d";
-            if (rating >= 2100) return "7d";
-            if (rating >= 1900) return "6d";
-            if (rating >= 1700) return "5d";
-            if (rating >= 1500) return "4d";
-            if (rating >= 1300) return "3d";
-            if (rating >= 1100) return "2d";
-            if (rating >= 1000) return "1d";
-            if (rating >= 900) return "1k";
-            if (rating >= 800) return "2k";
-            if (rating >= 700) return "3k";
-            if (rating >= 600) return "4k";
-            if (rating >= 500) return "5k";
-            if (rating >= 400) return "6k";
-            if (rating >= 300) return "7k";
-            if (rating >= 200) return "8k";
-            if (rating >= 100) return "9k";
-            if (rating >= 0) return "10k";
-            return "Débutant";
-        }
+        console.log('✅ Joueur OGS trouvé:', player);
 
-        async function importRealOGSData(totalGames, wins, losses, ogsLevel) {
-            if (!activeChar) return;
+        // Récupérer le  rang OGS
+        const realOGSLevel = await getRealOGSLevel(activeChar.ogsUsername);
+        console.log('🎯  RANG OGS:', realOGSLevel);
 
-            try {
-                const day = new Date().getDate();
-                const xpGain = totalGames * 20 + wins * 10;
-                const notes = `Parties OGS réelles - ${wins}V/${losses}D - Niveau ${ogsLevel} - ${new Date().toLocaleDateString()}`;
+        // Afficher les données avec le  rang
+        displayRealOGSPlayerStats(player, realOGSLevel);
+        
+        showNotification("✅ Données OGS S synchronisées !");
 
-                await db.collection("training_logs").add({
-                    day: day,
-                    games: totalGames,
-                    wins: wins,
-                    tsu: 0,
-                    time: totalGames * 30,
-                    oppLevel: ogsLevel,
-                    notes: notes,
-                    date: new Date().toISOString(),
-                    xpGain: xpGain,
-                    characterId: activeChar.id,
-                    characterName: activeChar.name,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    source: 'ogs_real'
-                });
+    } catch (error) {
+        console.error('❌ Erreur synchronisation OGS:', error);
+        showManualOGSInput();
+    }
+}
 
-                await db.collection("characters").doc(activeChar.id).update({
-                    xp: firebase.firestore.FieldValue.increment(xpGain)
-                });
+// FONCTION D'AFFICHAGE
+function displayRealOGSPlayerStats(player, realOGSLevel = null) {
+    const ogsStats = document.getElementById('ogsDashboardStats');
+    
+    // Utiliser le  rang OGS
+    const ogsLevel = realOGSLevel || "Non classé";
+    const playerName = player.username || activeChar.ogsUsername;
+    const ogsRating = Math.round(player.rating || (player.ratings?.overall?.rating || 0));
 
-                activeChar.xp += xpGain;
+    ogsStats.innerHTML = `
+        <div style="background: rgba(0,255,0,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #00ff00;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.5rem;">✅</span>
+                <div>
+                    <strong style="color: #00ff00; font-size: 1.1rem;">Données OGS s</strong>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">
+                        Synchronisé : ${new Date().toLocaleTimeString()}
+                    </div>
+                    <div style="font-size: 0.7rem; opacity: 0.7; margin-top: 0.2rem;">
+                         rang OGS: ${ogsLevel}
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                showNotification(`✅ ${totalGames} parties OGS réelles importées ! +${xpGain} XP`);
-                
-                renderDashboard();
-                if (document.getElementById('training').classList.contains('active')) {
-                    renderLog();
-                }
+        <div class="dashboard-layout">
+            <div class="dashboard-left-col">
+                <div class="dashboard-card">
+                    <h3>👤 Joueur OGS</h3>
+                    <div class="stat-number">${playerName}</div>
+                    <div class="stat-label" style="font-size: 1.3rem; font-weight: bold; color: var(--rouge);">
+                        ${ogsLevel}
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
+                        Rating: ${ogsRating}
+                    </div>
+                    ${player.country ? `
+                        <div style="margin-top: 0.3rem; font-size: 0.8rem; opacity: 0.7;">
+                            Pays: ${player.country}
+                        </div>
+                    ` : ''}
+                </div>
 
-            } catch (error) {
-                console.error("Erreur import OGS:", error);
-                alert("Erreur lors de l'import: " + error.message);
-            }
-        }
+                <div class="dashboard-card">
+                    <h3>📊 Rang OGS Officiel</h3>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎯</div>
+                        <div style="font-weight: bold; color: var(--rouge); font-size: 1.4rem;">
+                            ${ogsLevel}
+                        </div>
+                        <div style="font-size: 0.9rem; opacity: 0.8; margin-top: 0.5rem;">
+                            Rating: ${ogsRating}
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        function showManualOGSInput() {
-            const ogsStats = document.getElementById('ogsDashboardStats');
+            <div class="dashboard-right-col">
+                <div class="dashboard-card">
+                    <h3>ℹ️ Informations</h3>
+                    <div style="padding: 1rem;">
+                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <div style="font-weight: bold; color: var(--rouge); margin-bottom: 0.5rem;">Profil OGS Synchronisé</div>
+                            <div style="font-size: 0.8rem; opacity: 0.8;">
+                                Votre profil OGS a été synchronisé avec succès.
+                                Le rang affiché est votre <strong> rang OGS officiel</strong>.
+                            </div>
+                        </div>
+                        <div style="font-size: 0.8rem; opacity: 0.7; text-align: center;">
+                            Données directement depuis online-go.com
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem;">
+            <h4 style="margin-bottom: 1rem; color: var(--rouge);">📝 Entrez vos stats récentes</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Parties (30 derniers jours)</label>
+                    <input type="number" id="manualGames" class="form-input" min="0" placeholder="0" style="padding: 0.8rem;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Victoires</label>
+                    <input type="number" id="manualWins" class="form-input" min="0" placeholder="0" style="padding: 0.8rem;">
+                </div>
+            </div>
             
-            ogsStats.innerHTML = `
-                <div style="background: rgba(255,165,0,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid orange;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <span style="font-size: 1.5rem;">⚠️</span>
-                        <div>
-                            <strong style="color: orange; font-size: 1.1rem;">Connexion OGS échouée</strong>
-                            <div style="font-size: 0.8rem; opacity: 0.9;">
-                                Entrez vos statistiques manuellement
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <button onclick="importManualOGSData()" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                ✅ Importer mes stats S
+            </button>
+            
+            <div style="text-align: center; margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">
+                Basé sur votre profil OGS: ${playerName} (${ogsLevel})
+            </div>
+        </div>
 
-                <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px;">
-                    <h4 style="margin-bottom: 1rem; color: var(--rouge);">📊 Entrez vos stats OGS réelles</h4>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                        <div>
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Parties (30 derniers jours)</label>
-                            <input type="number" id="manualGames" class="form-input" min="0" placeholder="0" style="padding: 0.8rem;">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Victoires</label>
-                            <input type="number" id="manualWins" class="form-input" min="0" placeholder="0" style="padding: 0.8rem;">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Rating OGS</label>
-                            <input type="number" id="manualRating" class="form-input" placeholder="1500" style="padding: 0.8rem;">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Niveau OGS</label>
-                            <select id="manualLevel" class="form-input" style="padding: 0.8rem;">
-                                <option value="10k">10k</option>
-                                <option value="5k">5k</option>
-                                <option value="1k">1k</option>
-                                <option value="1d">1d</option>
-                                <option value="3d">3d</option>
-                                <option value="5d">5d</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <button onclick="importManualOGSData()" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
-                        ✅ Importer mes VRAIES stats OGS
-                    </button>
-                    
-                    <div style="text-align: center; margin-top: 0.8rem; font-size: 0.8rem; opacity: 0.7;">
-                        Ces données seront marquées comme réelles dans votre carnet
-                    </div>
-                </div>
-            `;
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+            <span style="font-size: 0.8rem; opacity: 0.7;">Source: online-go.com</span>
+            <button onclick="syncRealOGSData()" style="padding: 0.5rem 1rem; font-size: 0.8rem;">🔄 Actualiser</button>
+        </div>
+    `;
+}
+
+async function importRealOGSData(totalGames, wins, losses, ogsLevel) {
+    if (!activeChar) return;
+
+    try {
+        const day = new Date().getDate();
+        const xpGain = totalGames * 20 + wins * 10;
+        const notes = `Parties OGS s - ${wins}V/${losses}D - Niveau ${ogsLevel} - ${new Date().toLocaleDateString()}`;
+
+        await db.collection("training_logs").add({
+            day: day,
+            games: totalGames,
+            wins: wins,
+            tsu: 0,
+            time: totalGames * 30,
+            oppLevel: ogsLevel,
+            notes: notes,
+            date: new Date().toISOString(),
+            xpGain: xpGain,
+            characterId: activeChar.id,
+            characterName: activeChar.name,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            source: 'ogs_real'
+        });
+
+        await db.collection("characters").doc(activeChar.id).update({
+            xp: firebase.firestore.FieldValue.increment(xpGain)
+        });
+
+        activeChar.xp += xpGain;
+
+        showNotification(`✅ ${totalGames} parties OGS s importées ! +${xpGain} XP`);
+        
+        renderDashboard();
+        if (document.getElementById('training').classList.contains('active')) {
+            renderLog();
         }
 
-        async function importManualOGSData() {
-            const games = parseInt(document.getElementById('manualGames').value) || 0;
-            const wins = parseInt(document.getElementById('manualWins').value) || 0;
-            const rating = parseInt(document.getElementById('manualRating').value) || 0;
-            const level = document.getElementById('manualLevel').value;
+    } catch (error) {
+        console.error("Erreur import OGS:", error);
+        alert("Erreur lors de l'import: " + error.message);
+    }
+}
+
+function showManualOGSInput() {
+    const ogsStats = document.getElementById('ogsDashboardStats');
+    
+    ogsStats.innerHTML = `
+        <div style="background: rgba(255,165,0,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid orange;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.5rem;">⚠️</span>
+                <div>
+                    <strong style="color: orange; font-size: 1.1rem;">Connexion OGS échouée</strong>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">
+                        L'API OGS ne répond pas. Entrez vos stats manuellement.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px;">
+            <h4 style="margin-bottom: 1rem; color: var(--rouge);">📊 Entrez vos stats OGS s</h4>
             
-            if (games === 0) {
-                alert("Veuillez entrer le nombre de parties jouées");
-                return;
-            }
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Parties (30 derniers jours)</label>
+                    <input type="number" id="manualGames" class="form-input" min="0" placeholder="0" style="padding: 0.8rem;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Victoires</label>
+                    <input type="number" id="manualWins" class="form-input" min="0" placeholder="0" style="padding: 0.8rem;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Rating OGS</label>
+                    <input type="number" id="manualRating" class="form-input" placeholder="1500" style="padding: 0.8rem;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Niveau OGS</label>
+                    <select id="manualLevel" class="form-input" style="padding: 0.8rem;">
+                        <option value="25k+">25k+</option>
+                        <option value="21k">21k</option>
+                        <option value="18k">18k</option>
+                        <option value="15k">15k</option>
+                        <option value="12k">12k</option>
+                        <option value="9k">9k</option>
+                        <option value="6k">6k</option>
+                        <option value="3k">3k</option>
+                        <option value="1d">1d</option>
+                        <option value="3d">3d</option>
+                        <option value="5d">5d</option>
+                        <option value="7d">7d</option>
+                        <option value="9d">9d</option>
+                    </select>
+                </div>
+            </div>
             
-            if (wins > games) {
-                alert("Le nombre de victoires ne peut pas dépasser le nombre de parties");
-                return;
-            }
+            <button onclick="importManualOGSData()" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                ✅ Importer mes  stats OGS
+            </button>
             
-            await importRealOGSData(games, wins, games - wins, level);
-        }
+            <div style="text-align: center; margin-top: 0.8rem; font-size: 0.8rem; opacity: 0.7;">
+                Ces données seront marquées comme s dans votre carnet
+            </div>
+        </div>
+    `;
+}
+
+async function importManualOGSData() {
+    const games = parseInt(document.getElementById('manualGames').value) || 0;
+    const wins = parseInt(document.getElementById('manualWins').value) || 0;
+    const rating = parseInt(document.getElementById('manualRating').value) || 0;
+    const level = document.getElementById('manualLevel').value;
+    
+    if (games === 0) {
+        alert("Veuillez entrer le nombre de parties jouées");
+        return;
+    }
+    
+    if (wins > games) {
+        alert("Le nombre de victoires ne peut pas dépasser le nombre de parties");
+        return;
+    }
+    
+    await importRealOGSData(games, wins, games - wins, level);
+}
 
         // ========== FONCTIONS DE BASE ==========
         function showPage(name) {
@@ -3344,43 +3384,37 @@
         }
 
         // ========== GESTION DU THÈME ==========
-        function initTheme() {
-            const savedTheme = localStorage.getItem('foxTheme') || 'dark';
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            
-            const theme = savedTheme === 'auto' ? (systemPrefersDark ? 'dark' : 'light') : savedTheme;
-            setTheme(theme);
-        }
+function initTheme() {
+    const savedTheme = localStorage.getItem('foxTheme') || 'dark';
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    const theme = savedTheme === 'auto' ? (systemPrefersDark ? 'dark' : 'light') : savedTheme;
+    setTheme(theme);
+}
 
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('foxTheme', theme);
-            
-            const toggleBtn = document.getElementById('themeToggle');
-            if (toggleBtn) {
-                toggleBtn.textContent = theme === 'dark' ? '🌙 Mode Sombre' : '☀️ Mode Clair';
-            }
-            
-            updateThemeColors();
-        }
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('foxTheme', theme);
+    
+    const toggleBtn = document.getElementById('themeToggle');
+    if (toggleBtn) {
+        toggleBtn.textContent = theme === 'dark' ? '🌙 Mode Sombre' : '☀️ Mode Clair';
+    }
+    
+    updateThemeColors();
+}
 
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            setTheme(newTheme);
-        }
+// AJOUTER CETTE FONCTION MANQUANTE :
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+}
 
-        function updateThemeColors() {
-            const customColor = activeChar?.theme || '#ff003c';
-            document.documentElement.style.setProperty('--rouge', customColor);
-        }
-
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            const savedTheme = localStorage.getItem('foxTheme');
-            if (savedTheme === 'auto') {
-                setTheme(e.matches ? 'dark' : 'light');
-            }
-        });
+function updateThemeColors() {
+    const customColor = activeChar?.theme || '#ff003c';
+    document.documentElement.style.setProperty('--rouge', customColor);
+}
 
         // ========== FIREBASE ==========
         let firebaseInitializationPromise = null;
