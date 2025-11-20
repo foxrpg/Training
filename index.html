@@ -8,227 +8,227 @@
     <title>Fox RPG Beta Test</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
+        /* Variables pour le mode clair */
+        :root[data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #0f0f0f;
+            --text-secondary: #666666;
+            --rouge: #ff003c;
+            --glass: rgba(0,0,0,0.05);
+            --shadow: 0 12px 40px rgba(0,0,0,0.1);
+            --blanc: #0f0f0f;
+        }
 
-/* AJOUTER DANS LA SECTION STYLE */
-.theme-toggle-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    background: rgba(255,255,255,0.1);
-    box-shadow: 0 0 5px rgba(255,255,255,0.1);
-    border: none;
-    border-radius: var(--radius);
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
+        :root[data-theme="dark"] {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --rouge: #ff003c;
+            --glass: rgba(255,255,255,0.05);
+            --shadow: 0 12px 40px rgba(0,0,0,0.25);
+            --blanc: #ffffff;
+        }
 
-.theme-toggle-btn:hover {
-    background: rgba(255,255,255,0.2);
-}
+        /* Appliquer les variables aux éléments */
+        body {
+            background: radial-gradient(circle at 30% 20%, rgba(255,0,60,.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, var(--bg-secondary) 0%, transparent 50%),
+                        linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+        }
 
-/* Variables pour le mode clair */
-:root[data-theme="light"] {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8f9fa;
-    --text-primary: #0f0f0f;
-    --text-secondary: #666666;
-    --rouge: #ff003c;
-    --glass: rgba(0,0,0,0.05);
-    --shadow: 0 12px 40px rgba(0,0,0,0.1);
-    --blanc: #0f0f0f;
-}
+        .frame {
+            background: var(--glass);
+            color: var(--text-primary);
+        }
 
-:root[data-theme="dark"] {
-    --bg-primary: #0f0f0f;
-    --bg-secondary: #1a1a1a;
-    --text-primary: #ffffff;
-    --text-secondary: #aaaaaa;
-    --rouge: #ff003c;
-    --glass: rgba(255,255,255,0.05);
-    --shadow: 0 12px 40px rgba(0,0,0,0.25);
-    --blanc: #ffffff;
-}
+        select, input, textarea {
+            background: rgba(255,255,255,0.9);
+            color: #111;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
 
-/* Appliquer les variables aux éléments */
-body {
-    background: radial-gradient(circle at 30% 20%, rgba(255,0,60,.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, var(--bg-secondary) 0%, transparent 50%),
-                linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-    color: var(--text-primary);
-}
+        /* Ajuster les couleurs pour le mode clair */
+        :root[data-theme="light"] .frame {
+            border: 1px solid rgba(0,0,0,.15);
+        }
 
-.frame {
-    background: var(--glass);
-    color: var(--text-primary);
-}
+        :root[data-theme="light"] .log-entry,
+        :root[data-theme="light"] .dashboard-card,
+        :root[data-theme="light"] .program-day-compact {
+            background: rgba(0,0,0,0.05);
+        }
 
-select, input, textarea {
-    background: rgba(255,255,255,0.9);
-    color: #111;
-    border: 1px solid rgba(0,0,0,0.2);
-}
-
-/* Ajuster les couleurs pour le mode clair */
-:root[data-theme="light"] .frame {
-    border: 1px solid rgba(0,0,0,.15);
-}
-
-:root[data-theme="light"] .log-entry,
-:root[data-theme="light"] .dashboard-card,
-:root[data-theme="light"] .program-day-compact {
-    background: rgba(0,0,0,0.05);
-}
-
-:root[data-theme="light"] .feature-card {
-    background: rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.1);
-}
+        :root[data-theme="light"] .feature-card {
+            background: rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
 
         /* Styles pour le tableau de bord */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    margin: 1.5rem 0;
-}
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
 
-.dashboard-card {
-    background: rgba(255,255,255,0.08);
-    border-radius: var(--radius);
-    padding: 1.2rem;
-    border-left: 4px solid var(--rouge);
-    transition: all 0.3s ease;
-}
+        .dashboard-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: var(--radius);
+            padding: 1.2rem;
+            border-left: 4px solid var(--rouge);
+            transition: all 0.3s ease;
+        }
 
-.dashboard-card:hover {
-    transform: translateY(-2px);
-    background: rgba(255,255,255,0.12);
-}
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.12);
+        }
 
-.dashboard-card h3 {
-    font-size: 0.9rem;
-    margin-bottom: 0.8rem;
-    color: var(--rouge);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
+        .dashboard-card h3 {
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+            color: var(--rouge);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-.stat-number {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 0.3rem;
-}
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
 
-.stat-label {
-    font-size: 0.8rem;
-    opacity: 0.7;
-}
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
 
-.progress-mini {
-    height: 6px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 3px;
-    margin: 0.5rem 0;
-    overflow: hidden;
-}
+        .progress-mini {
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
 
-.progress-mini-fill {
-    height: 100%;
-    background: var(--rouge);
-    border-radius: 3px;
-    transition: width 0.5s ease;
-}
+        .progress-mini-fill {
+            height: 100%;
+            background: var(--rouge);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
 
-.quest-item {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    padding: 0.7rem;
-    background: rgba(255,255,255,0.05);
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-}
+        .quest-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
 
-.quest-checkbox {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--rouge);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
+        .quest-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--rouge);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
 
-.quest-checkbox.checked {
-    background: var(--rouge);
-}
+        .quest-checkbox.checked {
+            background: var(--rouge);
+        }
 
-.quest-checkbox.checked::after {
-    content: '✓';
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
-}
+        .quest-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
 
-.quest-info {
-    flex: 1;
-}
+        .quest-info {
+            flex: 1;
+        }
 
-.quest-title {
-    font-size: 0.85rem;
-    font-weight: 500;
-}
+        .quest-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
 
-.quest-reward {
-    font-size: 0.75rem;
-    color: var(--rouge);
-    font-weight: 600;
-}
+        .quest-reward {
+            font-size: 0.75rem;
+            color: var(--rouge);
+            font-weight: 600;
+        }
 
-.quick-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.8rem;
-    margin-top: 1rem;
-}
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
 
-.quick-action-btn {
-    padding: 0.6rem;
-    background: rgba(255,255,255,0.1);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.3rem;
-}
+        .quick-action-btn {
+            padding: 0.6rem;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+        }
 
-.quick-action-btn:hover {
-    background: rgba(255,255,255,0.15);
-    transform: translateY(-2px);
-}
+        .quick-action-btn:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
 
-.action-icon {
-    font-size: 1.2rem;
-}
+        .action-icon {
+            font-size: 1.2rem;
+        }
 
-/* Animation pour les nouvelles quêtes */
-@keyframes pulseGlow {
-    0% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(255, 0, 60, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0); }
-}
+        /* Animation pour les nouvelles quêtes */
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 0, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0); }
+        }
 
-.new-quest {
-    animation: pulseGlow 2s infinite;
-}
-        /* Ajouter dans la section CSS */
+        .new-quest {
+            animation: pulseGlow 2s infinite;
+        }
+
+        /* AJOUTER DANS LA SECTION STYLE */
+        .theme-toggle-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            background: rgba(255,255,255,0.1);
+            box-shadow: 0 0 5px rgba(255,255,255,0.1);
+            border: none;
+            border-radius: var(--radius);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Styles de base */
         .prog-line{
             display:flex;
             align-items:center;
@@ -245,7 +245,7 @@ select, input, textarea {
         }
         :root{--rouge:#ff003c;--blanc:#ffffff;--glass:rgba(255,255,255,.55);--radius:12px;--shadow:0 12px 40px rgba(0,0,0,.25);}
         *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif;}
-        body{min-height:100vh;background:radial-gradient(circle at 30% 20%,rgba(255,0,60,.15) 0%,transparent 50%),radial-gradient(circle at 80% 70%,rgba(255,255,255,.1) 0%,transparent 50%),linear-gradient(135deg,#0f0f0f 0%,#1a1a1a 100%);color:var(--blanc);display:flex;flex-direction:column;align-items:center;padding:3rem 1rem;}
+        body{min-height:100vh;color:var(--blanc);display:flex;flex-direction:column;align-items:center;padding:3rem 1rem;}
         h1{font-size:3rem;font-weight:700;background:linear-gradient(90deg,var(--rouge),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem;}
         .fox-badge{font-size:1rem;color:var(--rouge);font-weight:500;margin-bottom:1rem;}
         h2{margin:2rem 0 1rem;font-weight:500;display:flex;align-items:center;gap:.5rem;}h2:before{content:'◆';color:var(--rouge);}
@@ -845,20 +845,14 @@ select, input, textarea {
     <h1 id="mainTitle">Fox RPG Beta Test</h1>
     <p class="fox-badge" id="foxBadge">Plateforme : Fox Go Server (19×19)</p>
 
-    <!-- SÉLECTEUR LANGUE -->
+    <!-- SÉLECTEUR LANGUE ET THÈME -->
     <div class="lang-selector">
         <button class="lang-btn active" onclick="setLang('fr')">Français</button>
         <button class="lang-btn" onclick="setLang('en')">English</button>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle">
+            🌙 Mode Sombre
+        </button>
     </div>
-
-<!-- AJOUTER APRÈS LE SÉLECTEUR DE LANGUE -->
-<div class="lang-selector">
-    <button class="lang-btn active" onclick="setLang('fr')">Français</button>
-    <button class="lang-btn" onclick="setLang('en')">English</button>
-    <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle">
-        🌙 Mode Sombre
-    </button>
-</div>
     
     <!-- NAVIGATION PRINCIPALE -->
     <div class="frame" style="display:flex;gap:1rem;flex-wrap:wrap;">
@@ -1145,12 +1139,13 @@ select, input, textarea {
             </div>
         </div>
 
+        <!-- DASHBOARD -->
         <div class="frame">
-    <h2>📊 Tableau de Bord</h2>
-    <div class="dashboard-grid" id="dashboardGrid">
-        <!-- Le contenu sera généré dynamiquement -->
-    </div>
-</div>
+            <h2>📊 Tableau de Bord</h2>
+            <div class="dashboard-grid" id="dashboardGrid">
+                <!-- Le contenu sera généré dynamiquement -->
+            </div>
+        </div>
 
         <!-- WIN-RATE SELECTEUR -->
         <div class="frame">
@@ -1254,363 +1249,436 @@ select, input, textarea {
         let firebaseInitialized = false;
 
         // ========== STREAK SYSTEM ==========
-function updateStreak() {
-    if (!activeChar) {
-        console.log("❌ Aucun personnage connecté pour updateStreak");
-        return;
-    }
-    
-    // Initialiser si nécessaire
-    if (activeChar.streak === undefined) {
-        activeChar.streak = 0;
-        activeChar.streakMultiplier = 1;
-        console.log("🆕 Streak initialisé à 0");
-    }
-    
-    const today = new Date().toDateString();
-    
-    // Gérer le format de lastLogin
-    let lastLoginDate = null;
-    if (activeChar.lastLogin) {
-        if (activeChar.lastLogin.toDate) {
-            lastLoginDate = activeChar.lastLogin.toDate().toDateString();
-        } else if (activeChar.lastLogin instanceof Date) {
-            lastLoginDate = activeChar.lastLogin.toDateString();
-        } else {
-            lastLoginDate = new Date(activeChar.lastLogin).toDateString();
-        }
-    }
-    
-    console.log("📅 Streak Debug:");
-    console.log("  - Aujourd'hui:", today);
-    console.log("  - Dernière connexion:", lastLoginDate);
-    console.log("  - Streak avant:", activeChar.streak);
-    
-    // Vérifier si c'est un nouveau jour
-    if (lastLoginDate !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        console.log("  - Hier:", yesterday.toDateString());
-        
-        if (lastLoginDate === yesterday.toDateString()) {
-            // Jour consécutif
-            activeChar.streak++;
-            console.log("🔥 Jour consécutif! Nouveau streak:", activeChar.streak);
-        } else if (lastLoginDate && lastLoginDate !== today) {
-            // Rupture du streak
-            console.log("💥 Rupture du streak - écart de plus d'un jour");
-            activeChar.streak = 1;
-        } else {
-            // Premier login ou même jour
-            console.log("🎯 Premier login ou même jour");
-            activeChar.streak = Math.max(activeChar.streak, 1);
-        }
-        
-        // Calculer le multiplicateur
-        activeChar.streakMultiplier = 1 + (Math.floor(activeChar.streak / 7) * 0.2);
-        
-        // Mettre à jour lastLogin
-        activeChar.lastLogin = new Date();
-        
-        // Sauvegarder dans Firebase
-        if (db && activeChar.id) {
-            db.collection("characters").doc(activeChar.id).update({
-                streak: activeChar.streak,
-                streakMultiplier: activeChar.streakMultiplier,
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                console.log("💾 Streak sauvegardé dans Firebase:", activeChar.streak);
-            }).catch(error => {
-                console.error("❌ Erreur sauvegarde streak:", error);
-            });
-        }
-    } else {
-        console.log("⏰ Même jour - pas de mise à jour du streak");
-    }
-    
-    // Afficher le streak
-    displayStreak(activeChar.streak, activeChar.streakMultiplier);
-    console.log("🎯 Streak final:", activeChar.streak, "Multiplicateur:", activeChar.streakMultiplier);
-}
-
-// AJOUTER APRÈS LA FONCTION updateStreak()
-
-function renderDashboard() {
-    if (!activeChar) return;
-    
-    const dashboardGrid = document.getElementById('dashboardGrid');
-    if (!dashboardGrid) return;
-    
-    // Calculer les stats en temps réel
-    const dailyXP = calculateDailyXP();
-    const winRate = calculateCurrentWinRate();
-    const quests = getDailyQuests();
-    const completedQuests = quests.filter(q => q.completed).length;
-    
-    dashboardGrid.innerHTML = `
-        <!-- Carte Progression Quotidienne -->
-        <div class="dashboard-card">
-            <h3>📈 Progression Aujourd'hui</h3>
-            <div class="stat-number">${dailyXP} XP</div>
-            <div class="stat-label">Gagnés aujourd'hui</div>
-            <div class="progress-mini">
-                <div class="progress-mini-fill" style="width: ${Math.min((dailyXP / 100) * 100, 100)}%"></div>
-            </div>
-            <div class="stat-label">${Math.min(dailyXP, 100)}/100 XP quotidiens</div>
-        </div>
-        
-        <!-- Carte Stats Rapides -->
-        <div class="dashboard-card">
-            <h3>⚡ Stats Rapides</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
-                <div>
-                    <div class="stat-number">${winRate}%</div>
-                    <div class="stat-label">Win Rate</div>
-                </div>
-                <div>
-                    <div class="stat-number">${activeChar.streak || 0}</div>
-                    <div class="stat-label">Streak</div>
-                </div>
-            </div>
-            <div style="margin-top: 0.8rem;">
-                <div class="stat-number">${completedQuests}/${quests.length}</div>
-                <div class="stat-label">Quêtes complétées</div>
-            </div>
-        </div>
-        
-        <!-- Carte Quêtes du Jour -->
-        <div class="dashboard-card">
-            <h3>🎯 Quêtes du Jour</h3>
-            <div id="dailyQuestsList">
-                ${renderQuestsList(quests)}
-            </div>
-        </div>
-        
-        <!-- Carte Actions Rapides -->
-        <div class="dashboard-card">
-            <h3>🚀 Actions Rapides</h3>
-            <div class="quick-actions">
-                <button class="quick-action-btn" onclick="quickAddGame()">
-                    <span class="action-icon">🎮</span>
-                    <span>Ajouter Partie</span>
-                </button>
-                <button class="quick-action-btn" onclick="quickAddTsumego()">
-                    <span class="action-icon">🧩</span>
-                    <span>Tsumegos</span>
-                </button>
-                <button class="quick-action-btn" onclick="showPage('profile')">
-                    <span class="action-icon">👤</span>
-                    <span>Profil</span>
-                </button>
-                <button class="quick-action-btn" onclick="toggleChat()">
-                    <span class="action-icon">💬</span>
-                    <span>Chat</span>
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-function calculateDailyXP() {
-    // Pour l'instant, valeur factice - à améliorer avec les données réelles
-    return Math.min(activeChar.xp % 100, 75);
-}
-
-function calculateCurrentWinRate() {
-    // Pour l'instant, valeur factice - à améliorer avec les données réelles
-    return activeChar.winRate || Math.floor(Math.random() * 30) + 50;
-}
-
-function getDailyQuests() {
-    const today = new Date().toDateString();
-    const storedQuests = JSON.parse(localStorage.getItem(`foxQuests_${activeChar.id}_${today}`));
-    
-    if (storedQuests) {
-        return storedQuests;
-    }
-    
-    // Générer de nouvelles quêtes
-    const newQuests = [
-        {
-            id: 'play_games',
-            title: lang === 'fr' ? 'Jouer 2 parties' : 'Play 2 games',
-            target: 2,
-            current: 0,
-            reward: 25,
-            completed: false,
-            type: 'games'
-        },
-        {
-            id: 'solve_tsumego',
-            title: lang === 'fr' ? 'Résoudre 10 tsumegos' : 'Solve 10 tsumegos',
-            target: 10,
-            current: 0,
-            reward: 20,
-            completed: false,
-            type: 'tsumego'
-        },
-        {
-            id: 'training_time',
-            title: lang === 'fr' ? '30min d\'entraînement' : '30min training',
-            target: 30,
-            current: 0,
-            reward: 15,
-            completed: false,
-            type: 'time'
-        }
-    ];
-    
-    localStorage.setItem(`foxQuests_${activeChar.id}_${today}`, JSON.stringify(newQuests));
-    return newQuests;
-}
-
-function renderQuestsList(quests) {
-    return quests.map(quest => `
-        <div class="quest-item ${quest.completed ? '' : 'new-quest'}" onclick="toggleQuest('${quest.id}')">
-            <div class="quest-checkbox ${quest.completed ? 'checked' : ''}"></div>
-            <div class="quest-info">
-                <div class="quest-title">${quest.title}</div>
-                <div class="quest-reward">+${quest.reward} XP</div>
-            </div>
-            <div style="font-size: 0.8rem; opacity: 0.7;">
-                ${quest.current}/${quest.target}
-            </div>
-        </div>
-    `).join('');
-}
-
-function toggleQuest(questId) {
-    const today = new Date().toDateString();
-    const quests = getDailyQuests();
-    const quest = quests.find(q => q.id === questId);
-    
-    if (quest) {
-        quest.completed = !quest.completed;
-        localStorage.setItem(`foxQuests_${activeChar.id}_${today}`, JSON.stringify(quests));
-        
-        if (quest.completed) {
-            // Ajouter l'XP de récompense
-            activeChar.xp += quest.reward;
-            if (db && activeChar.id) {
-                db.collection("characters").doc(activeChar.id).update({
-                    xp: firebase.firestore.FieldValue.increment(quest.reward)
-                });
+        function updateStreak() {
+            if (!activeChar) {
+                console.log("❌ Aucun personnage connecté pour updateStreak");
+                return;
             }
-            refresh();
-        }
-        
-        renderDashboard();
-    }
-}
-
-// AJOUTER APRÈS LES FONCTIONS DU DASHBOARD
-function updateDashboardOnActivity(type, value) {
-    const today = new Date().toDateString();
-    const quests = getDailyQuests();
-    let updated = false;
-    
-    quests.forEach(quest => {
-        if (!quest.completed && quest.type === type) {
-            quest.current += value;
-            if (quest.current >= quest.target) {
-                quest.completed = true;
-                // Récompense automatique
-                activeChar.xp += quest.reward;
+            
+            // Initialiser si nécessaire
+            if (activeChar.streak === undefined) {
+                activeChar.streak = 0;
+                activeChar.streakMultiplier = 1;
+                console.log("🆕 Streak initialisé à 0");
+            }
+            
+            const today = new Date().toDateString();
+            
+            // Gérer le format de lastLogin
+            let lastLoginDate = null;
+            if (activeChar.lastLogin) {
+                if (activeChar.lastLogin.toDate) {
+                    lastLoginDate = activeChar.lastLogin.toDate().toDateString();
+                } else if (activeChar.lastLogin instanceof Date) {
+                    lastLoginDate = activeChar.lastLogin.toDateString();
+                } else {
+                    lastLoginDate = new Date(activeChar.lastLogin).toDateString();
+                }
+            }
+            
+            console.log("📅 Streak Debug:");
+            console.log("  - Aujourd'hui:", today);
+            console.log("  - Dernière connexion:", lastLoginDate);
+            console.log("  - Streak avant:", activeChar.streak);
+            
+            // Vérifier si c'est un nouveau jour
+            if (lastLoginDate !== today) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                console.log("  - Hier:", yesterday.toDateString());
+                
+                if (lastLoginDate === yesterday.toDateString()) {
+                    // Jour consécutif
+                    activeChar.streak++;
+                    console.log("🔥 Jour consécutif! Nouveau streak:", activeChar.streak);
+                } else if (lastLoginDate && lastLoginDate !== today) {
+                    // Rupture du streak
+                    console.log("💥 Rupture du streak - écart de plus d'un jour");
+                    activeChar.streak = 1;
+                } else {
+                    // Premier login ou même jour
+                    console.log("🎯 Premier login ou même jour");
+                    activeChar.streak = Math.max(activeChar.streak, 1);
+                }
+                
+                // Calculer le multiplicateur
+                activeChar.streakMultiplier = 1 + (Math.floor(activeChar.streak / 7) * 0.2);
+                
+                // Mettre à jour lastLogin
+                activeChar.lastLogin = new Date();
+                
+                // Sauvegarder dans Firebase
                 if (db && activeChar.id) {
                     db.collection("characters").doc(activeChar.id).update({
-                        xp: firebase.firestore.FieldValue.increment(quest.reward)
+                        streak: activeChar.streak,
+                        streakMultiplier: activeChar.streakMultiplier,
+                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        console.log("💾 Streak sauvegardé dans Firebase:", activeChar.streak);
+                    }).catch(error => {
+                        console.error("❌ Erreur sauvegarde streak:", error);
+                    });
+                }
+            } else {
+                console.log("⏰ Même jour - pas de mise à jour du streak");
+            }
+            
+            // Afficher le streak
+            displayStreak(activeChar.streak, activeChar.streakMultiplier);
+            console.log("🎯 Streak final:", activeChar.streak, "Multiplicateur:", activeChar.streakMultiplier);
+        }
+
+        // ========== DASHBOARD FUNCTIONS ==========
+        function renderDashboard() {
+            if (!activeChar) return;
+            
+            const dashboardGrid = document.getElementById('dashboardGrid');
+            if (!dashboardGrid) return;
+            
+            // Calculer les stats en temps réel
+            const dailyXP = calculateDailyXP();
+            const winRate = calculateCurrentWinRate();
+            const quests = getDailyQuests();
+            const completedQuests = quests.filter(q => q.completed).length;
+            
+            dashboardGrid.innerHTML = `
+                <!-- Carte Progression Quotidienne -->
+                <div class="dashboard-card">
+                    <h3>📈 Progression Aujourd'hui</h3>
+                    <div class="stat-number">${dailyXP} XP</div>
+                    <div class="stat-label">Gagnés aujourd'hui</div>
+                    <div class="progress-mini">
+                        <div class="progress-mini-fill" style="width: ${Math.min((dailyXP / 100) * 100, 100)}%"></div>
+                    </div>
+                    <div class="stat-label">${Math.min(dailyXP, 100)}/100 XP quotidiens</div>
+                </div>
+                
+                <!-- Carte Stats Rapides -->
+                <div class="dashboard-card">
+                    <h3>⚡ Stats Rapides</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+                        <div>
+                            <div class="stat-number">${winRate}%</div>
+                            <div class="stat-label">Win Rate</div>
+                        </div>
+                        <div>
+                            <div class="stat-number">${activeChar.streak || 0}</div>
+                            <div class="stat-label">Streak</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <div class="stat-number">${completedQuests}/${quests.length}</div>
+                        <div class="stat-label">Quêtes complétées</div>
+                    </div>
+                </div>
+                
+                <!-- Carte Quêtes du Jour -->
+                <div class="dashboard-card">
+                    <h3>🎯 Quêtes du Jour</h3>
+                    <div id="dailyQuestsList">
+                        ${renderQuestsList(quests)}
+                    </div>
+                </div>
+                
+                <!-- Carte Actions Rapides -->
+                <div class="dashboard-card">
+                    <h3>🚀 Actions Rapides</h3>
+                    <div class="quick-actions">
+                        <button class="quick-action-btn" onclick="quickAddGame()">
+                            <span class="action-icon">🎮</span>
+                            <span>Ajouter Partie</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="quickAddTsumego()">
+                            <span class="action-icon">🧩</span>
+                            <span>Tsumegos</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="showPage('profile')">
+                            <span class="action-icon">👤</span>
+                            <span>Profil</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="toggleChat()">
+                            <span class="action-icon">💬</span>
+                            <span>Chat</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateDailyXP() {
+            // Pour l'instant, valeur factice - à améliorer avec les données réelles
+            return Math.min(activeChar.xp % 100, 75);
+        }
+
+        function calculateCurrentWinRate() {
+            // Pour l'instant, valeur factice - à améliorer avec les données réelles
+            return activeChar.winRate || Math.floor(Math.random() * 30) + 50;
+        }
+
+        function getDailyQuests() {
+            const today = new Date().toDateString();
+            const storedQuests = JSON.parse(localStorage.getItem(`foxQuests_${activeChar.id}_${today}`));
+            
+            if (storedQuests) {
+                return storedQuests;
+            }
+            
+            // Générer de nouvelles quêtes
+            const newQuests = [
+                {
+                    id: 'play_games',
+                    title: lang === 'fr' ? 'Jouer 2 parties' : 'Play 2 games',
+                    target: 2,
+                    current: 0,
+                    reward: 25,
+                    completed: false,
+                    type: 'games'
+                },
+                {
+                    id: 'solve_tsumego',
+                    title: lang === 'fr' ? 'Résoudre 10 tsumegos' : 'Solve 10 tsumegos',
+                    target: 10,
+                    current: 0,
+                    reward: 20,
+                    completed: false,
+                    type: 'tsumego'
+                },
+                {
+                    id: 'training_time',
+                    title: lang === 'fr' ? '30min d\'entraînement' : '30min training',
+                    target: 30,
+                    current: 0,
+                    reward: 15,
+                    completed: false,
+                    type: 'time'
+                }
+            ];
+            
+            localStorage.setItem(`foxQuests_${activeChar.id}_${today}`, JSON.stringify(newQuests));
+            return newQuests;
+        }
+
+        function renderQuestsList(quests) {
+            return quests.map(quest => `
+                <div class="quest-item ${quest.completed ? '' : 'new-quest'}" onclick="toggleQuest('${quest.id}')">
+                    <div class="quest-checkbox ${quest.completed ? 'checked' : ''}"></div>
+                    <div class="quest-info">
+                        <div class="quest-title">${quest.title}</div>
+                        <div class="quest-reward">+${quest.reward} XP</div>
+                    </div>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">
+                        ${quest.current}/${quest.target}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleQuest(questId) {
+            const today = new Date().toDateString();
+            const quests = getDailyQuests();
+            const quest = quests.find(q => q.id === questId);
+            
+            if (quest) {
+                quest.completed = !quest.completed;
+                localStorage.setItem(`foxQuests_${activeChar.id}_${today}`, JSON.stringify(quests));
+                
+                if (quest.completed) {
+                    // Ajouter l'XP de récompense
+                    activeChar.xp += quest.reward;
+                    if (db && activeChar.id) {
+                        db.collection("characters").doc(activeChar.id).update({
+                            xp: firebase.firestore.FieldValue.increment(quest.reward)
+                        });
+                    }
+                    refresh();
+                }
+                
+                renderDashboard();
+            }
+        }
+
+        function updateDashboardOnActivity(type, value) {
+            const today = new Date().toDateString();
+            const quests = getDailyQuests();
+            let updated = false;
+            
+            quests.forEach(quest => {
+                if (!quest.completed && quest.type === type) {
+                    quest.current += value;
+                    if (quest.current >= quest.target) {
+                        quest.completed = true;
+                        // Récompense automatique
+                        activeChar.xp += quest.reward;
+                        if (db && activeChar.id) {
+                            db.collection("characters").doc(activeChar.id).update({
+                                xp: firebase.firestore.FieldValue.increment(quest.reward)
+                            });
+                        }
+                        refresh();
+                    }
+                    updated = true;
+                }
+            });
+            
+            if (updated) {
+                localStorage.setItem(`foxQuests_${activeChar.id}_${today}`, JSON.stringify(quests));
+                renderDashboard();
+            }
+        }
+
+        function quickAddGame() {
+            // Pré-remplir le formulaire de log avec une partie
+            document.getElementById('logDay').value = new Date().getDate();
+            document.getElementById('games').value = 1;
+            document.getElementById('wins').value = 1;
+            document.getElementById('tsu').value = 0;
+            document.getElementById('time').value = 20;
+            
+            // Scroll vers le formulaire
+            document.getElementById('logForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function quickAddTsumego() {
+            // Pré-remplir pour les tsumegos
+            document.getElementById('logDay').value = new Date().getDate();
+            document.getElementById('games').value = 0;
+            document.getElementById('wins').value = 0;
+            document.getElementById('tsu').value = 10;
+            document.getElementById('time').value = 15;
+            
+            document.getElementById('logForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function displayStreak(streak, multiplier) {
+            const streakHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+                    <div style="font-size: 1.2rem;">${streak >= 7 ? '🔥' : '⚡'}</div>
+                    <div>
+                        <div style="font-weight: bold; font-size: 0.9rem;">Streak: ${streak} jours</div>
+                        <div style="font-size: 0.7rem; opacity: 0.8;">Multiplicateur XP: ${multiplier.toFixed(1)}x</div>
+                    </div>
+                </div>
+            `;
+            
+            // Ajouter à l'interface
+            const existingStreak = document.getElementById('streakDisplay');
+            if (existingStreak) {
+                existingStreak.innerHTML = streakHTML;
+            } else {
+                const streakDiv = document.createElement('div');
+                streakDiv.id = 'streakDisplay';
+                streakDiv.innerHTML = streakHTML;
+                document.querySelector('#activeEmoji').parentNode.appendChild(streakDiv);
+            }
+            
+            // Récompenses spéciales
+            if (streak === 7) {
+                alert("🎉 Streak de 7 jours ! +20% XP permanent !");
+            }
+            if (streak === 30) {
+                alert("🏆 STREAK LEGENDAIRE ! Avatar Fox On Fire débloqué !");
+                activeChar.avatar = "🦊🔥";
+                if (db && activeChar.id) {
+                    db.collection("characters").doc(activeChar.id).update({
+                        avatar: "🦊🔥"
                     });
                 }
                 refresh();
             }
-            updated = true;
         }
-    });
-    
-    if (updated) {
-        localStorage.setItem(`foxQuests_${activeChar.id}_${today}`, JSON.stringify(quests));
-        renderDashboard();
-    }
-}
 
-// MODIFIER LA FONCTION addLogEntry
-const originalAddLogEntry = addLogEntry;
-addLogEntry = function() {
-    // Appeler la fonction originale
-    originalAddLogEntry();
-    
-    // Mettre à jour les quêtes
-    const games = parseInt(document.getElementById('games').value);
-    const tsu = parseInt(document.getElementById('tsu').value);
-    const time = parseInt(document.getElementById('time').value);
-    
-    if (games > 0) updateDashboardOnActivity('games', games);
-    if (tsu > 0) updateDashboardOnActivity('tsumego', tsu);
-    if (time > 0) updateDashboardOnActivity('time', time);
-};
+        // ========== SPACED REPETITION SYSTEM ==========
+        const repetitionIntervals = [1, 3, 7, 14, 30]; // jours
 
-function quickAddGame() {
-    // Pré-remplir le formulaire de log avec une partie
-    document.getElementById('logDay').value = new Date().getDate();
-    document.getElementById('games').value = 1;
-    document.getElementById('wins').value = 1;
-    document.getElementById('tsu').value = 0;
-    document.getElementById('time').value = 20;
-    
-    // Scroll vers le formulaire
-    document.getElementById('logForm').scrollIntoView({ behavior: 'smooth' });
-}
-
-function quickAddTsumego() {
-    // Pré-remplir pour les tsumegos
-    document.getElementById('logDay').value = new Date().getDate();
-    document.getElementById('games').value = 0;
-    document.getElementById('wins').value = 0;
-    document.getElementById('tsu').value = 10;
-    document.getElementById('time').value = 15;
-    
-    document.getElementById('logForm').scrollIntoView({ behavior: 'smooth' });
-}
-
-function displayStreak(streak, multiplier) {
-    const streakHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
-            <div style="font-size: 1.2rem;">${streak >= 7 ? '🔥' : '⚡'}</div>
-            <div>
-                <div style="font-weight: bold; font-size: 0.9rem;">Streak: ${streak} jours</div>
-                <div style="font-size: 0.7rem; opacity: 0.8;">Multiplicateur XP: ${multiplier.toFixed(1)}x</div>
-            </div>
-        </div>
-    `;
-    
-    // Ajouter à l'interface
-    const existingStreak = document.getElementById('streakDisplay');
-    if (existingStreak) {
-        existingStreak.innerHTML = streakHTML;
-    } else {
-        const streakDiv = document.createElement('div');
-        streakDiv.id = 'streakDisplay';
-        streakDiv.innerHTML = streakHTML;
-        document.querySelector('#activeEmoji').parentNode.appendChild(streakDiv);
-    }
-    
-    // Récompenses spéciales
-    if (streak === 7) {
-        alert("🎉 Streak de 7 jours ! +20% XP permanent !");
-    }
-    if (streak === 30) {
-        alert("🏆 STREAK LEGENDAIRE ! Avatar Fox On Fire débloqué !");
-        activeChar.avatar = "🦊🔥";
-        if (db && activeChar.id) {
+        function addSpacedRepetition(topic, content, mastery = 0) {
+            if (!activeChar) return;
+            
+            const nextReview = new Date();
+            nextReview.setDate(nextReview.getDate() + repetitionIntervals[mastery]);
+            
+            const reviewItem = {
+                id: Date.now().toString(),
+                topic: topic,
+                content: content,
+                mastery: mastery,
+                nextReview: nextReview,
+                createdAt: new Date()
+            };
+            
+            // Sauvegarder
+            const reviews = activeChar.spacedReviews || [];
+            reviews.push(reviewItem);
+            activeChar.spacedReviews = reviews;
+            
             db.collection("characters").doc(activeChar.id).update({
-                avatar: "🦊🔥"
+                spacedReviews: reviews
             });
         }
-        refresh();
-    }
-}
-// ⬅️ ICI, il ne doit plus y avoir de code après cette ligne !
+
+        function checkDailyReviews() {
+            if (!activeChar || !activeChar.spacedReviews) return;
+            
+            const today = new Date();
+            const dueReviews = activeChar.spacedReviews.filter(review => 
+                new Date(review.nextReview) <= today
+            );
+            
+            if (dueReviews.length > 0) {
+                showReviewNotification(dueReviews);
+            }
+        }
+
+        function showReviewNotification(reviews) {
+            const review = reviews[0]; // Prendre la plus ancienne
+            
+            const notificationHTML = `
+                <div style="position: fixed; top: 20px; right: 20px; background: var(--rouge); color: white; padding: 1rem; border-radius: var(--radius); z-index: 10000; box-shadow: var(--shadow);">
+                    <h4>🦊 Révision du jour</h4>
+                    <p><strong>${review.topic}:</strong> ${review.content}</p>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button onclick="reviewMastered('${review.id}')" style="padding: 0.5rem; background: #00ff88; color: black; border: none; border-radius: 6px;">Je maîtrise</button>
+                        <button onclick="reviewFailed('${review.id}')" style="padding: 0.5rem; background: #666; color: white; border: none; border-radius: 6px;">À revoir</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', notificationHTML);
+        }
+
+        function reviewMastered(reviewId) {
+            const review = activeChar.spacedReviews.find(r => r.id === reviewId);
+            if (review) {
+                review.mastery = Math.min(review.mastery + 1, repetitionIntervals.length - 1);
+                updateNextReview(review);
+                removeNotification();
+            }
+        }
+
+        function reviewFailed(reviewId) {
+            const review = activeChar.spacedReviews.find(r => r.id === reviewId);
+            if (review) {
+                review.mastery = Math.max(review.mastery - 1, 0);
+                updateNextReview(review);
+                removeNotification();
+            }
+        }
+
+        function updateNextReview(review) {
+            const nextReview = new Date();
+            nextReview.setDate(nextReview.getDate() + repetitionIntervals[review.mastery]);
+            review.nextReview = nextReview;
+            
+            db.collection("characters").doc(activeChar.id).update({
+                spacedReviews: activeChar.spacedReviews
+            });
+        }
+
+        function removeNotification() {
+            const notification = document.querySelector('[style*="position: fixed; top: 20px; right: 20px;"]');
+            if (notification) notification.remove();
+        }
+
         // ========== TRADUCTIONS ==========
         const trad = {
             fr: {
@@ -1677,97 +1745,6 @@ function displayStreak(streak, multiplier) {
             }
         };
 
-        // ========== SPACED REPETITION SYSTEM ==========
-const repetitionIntervals = [1, 3, 7, 14, 30]; // jours
-
-function addSpacedRepetition(topic, content, mastery = 0) {
-    if (!activeChar) return;
-    
-    const nextReview = new Date();
-    nextReview.setDate(nextReview.getDate() + repetitionIntervals[mastery]);
-    
-    const reviewItem = {
-        id: Date.now().toString(),
-        topic: topic,
-        content: content,
-        mastery: mastery,
-        nextReview: nextReview,
-        createdAt: new Date()
-    };
-    
-    // Sauvegarder
-    const reviews = activeChar.spacedReviews || [];
-    reviews.push(reviewItem);
-    activeChar.spacedReviews = reviews;
-    
-    db.collection("characters").doc(activeChar.id).update({
-        spacedReviews: reviews
-    });
-}
-
-function checkDailyReviews() {
-    if (!activeChar || !activeChar.spacedReviews) return;
-    
-    const today = new Date();
-    const dueReviews = activeChar.spacedReviews.filter(review => 
-        new Date(review.nextReview) <= today
-    );
-    
-    if (dueReviews.length > 0) {
-        showReviewNotification(dueReviews);
-    }
-}
-
-function showReviewNotification(reviews) {
-    const review = reviews[0]; // Prendre la plus ancienne
-    
-    const notificationHTML = `
-        <div style="position: fixed; top: 20px; right: 20px; background: var(--rouge); color: white; padding: 1rem; border-radius: var(--radius); z-index: 10000; box-shadow: var(--shadow);">
-            <h4>🦊 Révision du jour</h4>
-            <p><strong>${review.topic}:</strong> ${review.content}</p>
-            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                <button onclick="reviewMastered('${review.id}')" style="padding: 0.5rem; background: #00ff88; color: black; border: none; border-radius: 6px;">Je maîtrise</button>
-                <button onclick="reviewFailed('${review.id}')" style="padding: 0.5rem; background: #666; color: white; border: none; border-radius: 6px;">À revoir</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', notificationHTML);
-}
-
-function reviewMastered(reviewId) {
-    const review = activeChar.spacedReviews.find(r => r.id === reviewId);
-    if (review) {
-        review.mastery = Math.min(review.mastery + 1, repetitionIntervals.length - 1);
-        updateNextReview(review);
-        removeNotification();
-    }
-}
-
-function reviewFailed(reviewId) {
-    const review = activeChar.spacedReviews.find(r => r.id === reviewId);
-    if (review) {
-        review.mastery = Math.max(review.mastery - 1, 0);
-        updateNextReview(review);
-        removeNotification();
-    }
-}
-
-function updateNextReview(review) {
-    const nextReview = new Date();
-    nextReview.setDate(nextReview.getDate() + repetitionIntervals[review.mastery]);
-    review.nextReview = nextReview;
-    
-    db.collection("characters").doc(activeChar.id).update({
-        spacedReviews: activeChar.spacedReviews
-    });
-}
-
-function removeNotification() {
-    const notification = document.querySelector('[style*="position: fixed; top: 20px; right: 20px;"]');
-    if (notification) notification.remove();
-}
-
         // ========== FONCTIONS DE BASE ==========
         function showPage(name) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1781,6 +1758,7 @@ function removeNotification() {
                 renderAchievements(); 
                 checkGoalAchievement();
                 if (activeChar) setupChatListener();
+                renderDashboard();
             }
         }
 
@@ -1808,6 +1786,7 @@ function removeNotification() {
                 renderProfile();
             }
             if (activeChar) renderWeeklyProgram();
+            if (activeChar) renderDashboard();
         }
 
         function updateWelcomeStats() {
@@ -1861,41 +1840,43 @@ function removeNotification() {
                 profileBtn.style.display = 'none';
             }
         }
-function loginCharacter(charIndex) {
-    if (charIndex === undefined || charIndex === null || charIndex < 0) {
-        console.error("❌ Index de personnage invalide:", charIndex);
-        return;
-    }
-    
-    if (!characters[charIndex]) {
-        console.error("❌ Personnage non trouvé à l'index:", charIndex);
-        return;
-    }
-    
-    activeChar = characters[charIndex];
-    
-    // Initialiser le streak si nécessaire
-    if (activeChar.streak === undefined) {
-        activeChar.streak = 0;
-        activeChar.streakMultiplier = 1;
-    }
-    
-    // Mettre à jour la navigation
-    updateNavigation();
-    
-    refresh();
-    renderLog();
-    renderAchievements();
-    renderWeeklyProgram();
-    checkGoalAchievement();
-    
-    // Mettre à jour le streak APRÈS la connexion
-    updateStreak();
-    
-    showPage('game');
-    
-    console.log("✅ Personnage connecté");
-}
+
+        function loginCharacter(charIndex) {
+            if (charIndex === undefined || charIndex === null || charIndex < 0) {
+                console.error("❌ Index de personnage invalide:", charIndex);
+                return;
+            }
+            
+            if (!characters[charIndex]) {
+                console.error("❌ Personnage non trouvé à l'index:", charIndex);
+                return;
+            }
+            
+            activeChar = characters[charIndex];
+            
+            // Initialiser le streak si nécessaire
+            if (activeChar.streak === undefined) {
+                activeChar.streak = 0;
+                activeChar.streakMultiplier = 1;
+            }
+            
+            // Mettre à jour la navigation
+            updateNavigation();
+            
+            refresh();
+            renderLog();
+            renderAchievements();
+            renderWeeklyProgram();
+            checkGoalAchievement();
+            renderDashboard();
+            
+            // Mettre à jour le streak APRÈS la connexion
+            updateStreak();
+            
+            showPage('game');
+            
+            console.log("✅ Personnage connecté");
+        }
         
         async function createCharacter() {
             const name = document.getElementById('charName').value.trim();
@@ -2218,266 +2199,266 @@ function loginCharacter(charIndex) {
 
         // ========== FONCTIONS MANQUANTES À AJOUTER ==========
 
-function goalAchieved() {
-    if (!activeChar) return;
-    
-    const newGoal = prompt(trad[lang].goalCongratulations.replace('{goal}', activeChar.goal));
-    if (newGoal) {
-        activeChar.goal = newGoal;
-        // Sauvegarder dans Firebase
-        db.collection("characters").doc(activeChar.id).update({
-            goal: newGoal
-        });
-        alert(trad[lang].newGoalSet.replace('{goal}', newGoal));
-        refresh();
-        renderWeeklyProgram();
-    }
-}
-
-function loadFromLocalStorage() {
-    if (!activeChar) return;
-    
-    const logbook = document.getElementById('logbook');
-    const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
-    
-    if (Object.keys(charData).length === 0) {
-        logbook.innerHTML = '<div style="text-align:center;padding:2rem;opacity:0.7;">Aucune entrée de carnet</div>';
-        return;
-    }
-    
-    logbook.innerHTML = '';
-    let lastEntryDate = '';
-    
-    Object.entries(charData).forEach(([day, entry]) => {
-        const winRate = entry.games > 0 ? Math.round((entry.wins / entry.games) * 100) : 0;
-        
-        const logEntry = document.createElement('div');
-        logEntry.className = 'log-entry';
-        logEntry.innerHTML = `
-            <header>
-                <span>${trad[lang].dayText} ${day}</span>
-                <span>${new Date(entry.date).toLocaleDateString()}</span>
-            </header>
-            <div class="log-stats">
-                <div class="log-stat">
-                    <div class="log-stat-value">${entry.games}</div>
-                    <div>${trad[lang].gamesLabel}</div>
-                </div>
-                <div class="log-stat">
-                    <div class="log-stat-value">${winRate}%</div>
-                    <div>Win-rate</div>
-                </div>
-                <div class="log-stat">
-                    <div class="log-stat-value">${entry.tsu}</div>
-                    <div>${trad[lang].tsuLabel}</div>
-                </div>
-            </div>
-            <p><strong>${trad[lang].oppLabel}:</strong> ${entry.oppLevel}</p>
-            <p><strong>${trad[lang].notesLabel}:</strong> ${entry.notes}</p>
-        `;
-        logbook.appendChild(logEntry);
-        
-        if (!lastEntryDate) {
-            lastEntryDate = day;
+        function goalAchieved() {
+            if (!activeChar) return;
+            
+            const newGoal = prompt(trad[lang].goalCongratulations.replace('{goal}', activeChar.goal));
+            if (newGoal) {
+                activeChar.goal = newGoal;
+                // Sauvegarder dans Firebase
+                db.collection("characters").doc(activeChar.id).update({
+                    goal: newGoal
+                });
+                alert(trad[lang].newGoalSet.replace('{goal}', newGoal));
+                refresh();
+                renderWeeklyProgram();
+            }
         }
-    });
-    
-    if (lastEntryDate) {
-        document.getElementById('histAjout').textContent = trad[lang].lastEntry + lastEntryDate;
-    }
-}
 
-// ========== CORRECTION DE LA FONCTION generateCustomProgram ==========
+        function loadFromLocalStorage() {
+            if (!activeChar) return;
+            
+            const logbook = document.getElementById('logbook');
+            const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
+            
+            if (Object.keys(charData).length === 0) {
+                logbook.innerHTML = '<div style="text-align:center;padding:2rem;opacity:0.7;">Aucune entrée de carnet</div>';
+                return;
+            }
+            
+            logbook.innerHTML = '';
+            let lastEntryDate = '';
+            
+            Object.entries(charData).forEach(([day, entry]) => {
+                const winRate = entry.games > 0 ? Math.round((entry.wins / entry.games) * 100) : 0;
+                
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.innerHTML = `
+                    <header>
+                        <span>${trad[lang].dayText} ${day}</span>
+                        <span>${new Date(entry.date).toLocaleDateString()}</span>
+                    </header>
+                    <div class="log-stats">
+                        <div class="log-stat">
+                            <div class="log-stat-value">${entry.games}</div>
+                            <div>${trad[lang].gamesLabel}</div>
+                        </div>
+                        <div class="log-stat">
+                            <div class="log-stat-value">${winRate}%</div>
+                            <div>Win-rate</div>
+                        </div>
+                        <div class="log-stat">
+                            <div class="log-stat-value">${entry.tsu}</div>
+                            <div>${trad[lang].tsuLabel}</div>
+                        </div>
+                    </div>
+                    <p><strong>${trad[lang].oppLabel}:</strong> ${entry.oppLevel}</p>
+                    <p><strong>${trad[lang].notesLabel}:</strong> ${entry.notes}</p>
+                `;
+                logbook.appendChild(logEntry);
+                
+                if (!lastEntryDate) {
+                    lastEntryDate = day;
+                }
+            });
+            
+            if (lastEntryDate) {
+                document.getElementById('histAjout').textContent = trad[lang].lastEntry + lastEntryDate;
+            }
+        }
 
-function generateCustomProgram(level, dailyMinutes) {
-    const programs = {
-        "10k-5k": {
-            60: {
+        // ========== CORRECTION DE LA FONCTION generateCustomProgram ==========
+
+        function generateCustomProgram(level, dailyMinutes) {
+            const programs = {
+                "10k-5k": {
+                    60: {
+                        dailyGames: 2,
+                        dailyTsumego: 10,
+                        weeklyReview: 1,
+                        fusekiFocus: "Placement 3-4 / 4-4, joseki simples",
+                        chubanFocus: "Connexions, formes de base, vie & mort",
+                        yoseFocus: "Yose 1-2 points, sente vs gote"
+                    },
+                    120: {
+                        dailyGames: 3,
+                        dailyTsumego: 20,
+                        weeklyReview: 2,
+                        fusekiFocus: "Joseki 3-3, approches, direction",
+                        chubanFocus: "Invasion 3-3, réductions, attaques",
+                        yoseFocus: "Yose de bord, comptage rapide"
+                    },
+                    180: {
+                        dailyGames: 3,
+                        dailyTsumego: 30,
+                        weeklyReview: 3,
+                        fusekiFocus: "Fuseki équilibré, influence vs territoire",
+                        chubanFocus: "Groupes lourds, sacrifice, compensation",
+                        yoseFocus: "Yose de connexion, ko, fin de partie"
+                    }
+                },
+                "5k-1k": {
+                    60: {
+                        dailyGames: 2,
+                        dailyTsumego: 15,
+                        weeklyReview: 1,
+                        fusekiFocus: "Direction globale, joseki 4-4",
+                        chubanFocus: "Tesuji simples, attaques efficaces",
+                        yoseFocus: "Yose 2-3 points, comptage"
+                    },
+                    120: {
+                        dailyGames: 3,
+                        dailyTsumego: 25,
+                        weeklyReview: 2,
+                        fusekiFocus: "Fuseki rapide vs lent, choix stratégiques",
+                        chubanFocus: "Sacrifice, réduction, influence",
+                        yoseFocus: "Yose de réduction, double sente"
+                    },
+                    180: {
+                        dailyGames: 3,
+                        dailyTsumego: 35,
+                        weeklyReview: 3,
+                        fusekiFocus: "Fuseki pro, innovation, style personnel",
+                        chubanFocus: "Lecture 15+ coups, planification",
+                        yoseFocus: "Yose 0.5-1 point, comptage précis"
+                    }
+                },
+                "1d-5d": {
+                    60: {
+                        dailyGames: 2,
+                        dailyTsumego: 20,
+                        weeklyReview: 2,
+                        fusekiFocus: "Joseki AI, fuseki créatif",
+                        chubanFocus: "Tesuji complexes, stratégie",
+                        yoseFocus: "Yose pro, microscopique"
+                    },
+                    120: {
+                        dailyGames: 3,
+                        dailyTsumego: 30,
+                        weeklyReview: 3,
+                        fusekiFocus: "Fuseki influence, contre-joseki",
+                        chubanFocus: "Lecture 20+ coups, sacrifice avancé",
+                        yoseFocus: "Yose de ko, fin de partie parfaite"
+                    },
+                    180: {
+                        dailyGames: 3,
+                        dailyTsumego: 40,
+                        weeklyReview: 4,
+                        fusekiFocus: "Fuseki maîtrisé, style personnel",
+                        chubanFocus: "Innovation, intuition, créativité",
+                        yoseFocus: "Yose 0.5 point, comptage exact"
+                    }
+                }
+            };
+
+            // Détermination de la tranche
+            const levels = ["10k", "9k", "8k", "7k", "6k", "5k", "4k", "3k", "2k", "1k", "1d", "2d", "3d", "4d", "5d", "6d", "7d", "8d", "9d"];
+            const index = levels.indexOf(level);
+            let range = "10k-5k";
+            if (index >= levels.indexOf("5k")) range = "5k-1k";
+            if (index >= levels.indexOf("1d")) range = "1d-5d";
+
+            let timeKey = 60;
+            if (dailyMinutes >= 180) timeKey = 180;
+            else if (dailyMinutes >= 120) timeKey = 120;
+
+            const config = programs[range] && programs[range][timeKey] ? programs[range][timeKey] : {
                 dailyGames: 2,
                 dailyTsumego: 10,
                 weeklyReview: 1,
-                fusekiFocus: "Placement 3-4 / 4-4, joseki simples",
-                chubanFocus: "Connexions, formes de base, vie & mort",
-                yoseFocus: "Yose 1-2 points, sente vs gote"
-            },
-            120: {
-                dailyGames: 3,
-                dailyTsumego: 20,
-                weeklyReview: 2,
-                fusekiFocus: "Joseki 3-3, approches, direction",
-                chubanFocus: "Invasion 3-3, réductions, attaques",
-                yoseFocus: "Yose de bord, comptage rapide"
-            },
-            180: {
-                dailyGames: 3,
-                dailyTsumego: 30,
-                weeklyReview: 3,
-                fusekiFocus: "Fuseki équilibré, influence vs territoire",
-                chubanFocus: "Groupes lourds, sacrifice, compensation",
-                yoseFocus: "Yose de connexion, ko, fin de partie"
-            }
-        },
-        "5k-1k": {
-            60: {
-                dailyGames: 2,
-                dailyTsumego: 15,
-                weeklyReview: 1,
-                fusekiFocus: "Direction globale, joseki 4-4",
-                chubanFocus: "Tesuji simples, attaques efficaces",
-                yoseFocus: "Yose 2-3 points, comptage"
-            },
-            120: {
-                dailyGames: 3,
-                dailyTsumego: 25,
-                weeklyReview: 2,
-                fusekiFocus: "Fuseki rapide vs lent, choix stratégiques",
-                chubanFocus: "Sacrifice, réduction, influence",
-                yoseFocus: "Yose de réduction, double sente"
-            },
-            180: {
-                dailyGames: 3,
-                dailyTsumego: 35,
-                weeklyReview: 3,
-                fusekiFocus: "Fuseki pro, innovation, style personnel",
-                chubanFocus: "Lecture 15+ coups, planification",
-                yoseFocus: "Yose 0.5-1 point, comptage précis"
-            }
-        },
-        "1d-5d": {
-            60: {
-                dailyGames: 2,
-                dailyTsumego: 20,
-                weeklyReview: 2,
-                fusekiFocus: "Joseki AI, fuseki créatif",
-                chubanFocus: "Tesuji complexes, stratégie",
-                yoseFocus: "Yose pro, microscopique"
-            },
-            120: {
-                dailyGames: 3,
-                dailyTsumego: 30,
-                weeklyReview: 3,
-                fusekiFocus: "Fuseki influence, contre-joseki",
-                chubanFocus: "Lecture 20+ coups, sacrifice avancé",
-                yoseFocus: "Yose de ko, fin de partie parfaite"
-            },
-            180: {
-                dailyGames: 3,
-                dailyTsumego: 40,
-                weeklyReview: 4,
-                fusekiFocus: "Fuseki maîtrisé, style personnel",
-                chubanFocus: "Innovation, intuition, créativité",
-                yoseFocus: "Yose 0.5 point, comptage exact"
-            }
+                fusekiFocus: "Fuseki de base",
+                chubanFocus: "Jeu milieu de partie",
+                yoseFocus: "Fin de partie"
+            };
+
+            // Génération des journées avec temps réalistes
+            const days = [
+                {
+                    name: lang === 'fr' ? "LUNDI - FUSEKI" : "MONDAY - FUSEKI",
+                    focus: config.fusekiFocus,
+                    activities: [
+                        { icon: "🧠", desc: lang === 'fr' ? "Étude fuseki" : "Fuseki study", time: "20min" },
+                        { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties' : 'games'}`, time: `${config.dailyGames * 15}min` },
+                        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
+                    ],
+                    totalTime: getRealisticTime(dailyMinutes)
+                },
+                {
+                    name: lang === 'fr' ? "MARDI - CHUBAN" : "TUESDAY - MIDDLE GAME",
+                    focus: config.chubanFocus,
+                    activities: [
+                        { icon: "⚡", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties rapides' : 'fast games'}`, time: `${config.dailyGames * 15}min` },
+                        { icon: "🤖", desc: lang === 'fr' ? "Analyse AI 1 partie" : "AI review 1 game", time: "15min" },
+                        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
+                    ],
+                    totalTime: getRealisticTime(dailyMinutes)
+                },
+                {
+                    name: lang === 'fr' ? "MERCREDI - YOSE" : "WEDNESDAY - ENDGAME",
+                    focus: config.yoseFocus,
+                    activities: [
+                        { icon: "📊", desc: lang === 'fr' ? "Étude yose" : "Yose study", time: "20min" },
+                        { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties fin de partie' : 'endgame games'}`, time: `${config.dailyGames * 15}min` },
+                        { icon: "📚", desc: lang === 'fr' ? "Exercices comptage" : "Counting drills", time: "10min" }
+                    ],
+                    totalTime: getRealisticTime(dailyMinutes)
+                },
+                {
+                    name: lang === 'fr' ? "JEUDI - REVUE" : "THURSDAY - REVIEW",
+                    focus: lang === 'fr' ? "Revue de partie" : "Game review",
+                    activities: [
+                        { icon: "🔍", desc: lang === 'fr' ? "Revue 1 partie (15min)" : "Review 1 game (15min)", time: "15min" },
+                        { icon: "🎯", desc: `${config.dailyGames - 1} ${lang === 'fr' ? 'parties classiques' : 'classic games'}`, time: `${(config.dailyGames - 1) * 15}min` },
+                        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
+                    ],
+                    totalTime: getRealisticTime(dailyMinutes)
+                },
+                {
+                    name: lang === 'fr' ? "VENDREDI - INTENSIF" : "FRIDAY - INTENSIVE",
+                    focus: lang === 'fr' ? "Session intensive" : "Intensive session",
+                    activities: [
+                        { icon: "🏆", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties sérieuses' : 'serious games'}`, time: `${config.dailyGames * 20}min` },
+                        { icon: "🤖", desc: lang === 'fr' ? "Analyse AI rapide" : "Quick AI review", time: "10min" },
+                        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
+                    ],
+                    totalTime: getRealisticTime(dailyMinutes)
+                },
+                {
+                    name: lang === 'fr' ? "SAMEDI - LIBRE" : "SATURDAY - FREE",
+                    focus: lang === 'fr' ? "Jeu libre" : "Free play",
+                    activities: [
+                        { icon: "🎨", desc: lang === 'fr' ? "Parties créatives" : "Creative games", time: "30min" },
+                        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` },
+                        { icon: "📺", desc: lang === 'fr' ? "Vidéo pro ou stream" : "Pro video or stream", time: "10min" }
+                    ],
+                    totalTime: getRealisticTime(dailyMinutes)
+                },
+                {
+                    name: lang === 'fr' ? "DIMANCHE - PLANIFICATION" : "SUNDAY - PLANNING",
+                    focus: lang === 'fr' ? "Bilan & objectifs" : "Review & goals",
+                    activities: [
+                        { icon: "📈", desc: lang === 'fr' ? "Bilan de la semaine" : "Weekly review", time: "15min" },
+                        { icon: "🎯", desc: lang === 'fr' ? "Objectifs suivants" : "Next goals", time: "10min" },
+                        { icon: "🧘", desc: lang === 'fr' ? "Partie détente" : "Relaxed game", time: "20min" }
+                    ],
+                    totalTime: getRealisticTime(dailyMinutes)
+                }
+            ];
+
+            return {
+                days,
+                totalGames: config.dailyGames * 7,
+                totalTsumego: config.dailyTsumego * 7,
+                totalTime: Math.round(dailyMinutes * 7 / 60),
+                weeklyReviews: config.weeklyReview,
+                focusAreas: {
+                    fuseki: config.fusekiFocus,
+                    chuban: config.chubanFocus,
+                    yose: config.yoseFocus
+                }
+            };
         }
-    };
-
-    // Détermination de la tranche
-    const levels = ["10k", "9k", "8k", "7k", "6k", "5k", "4k", "3k", "2k", "1k", "1d", "2d", "3d", "4d", "5d", "6d", "7d", "8d", "9d"];
-    const index = levels.indexOf(level);
-    let range = "10k-5k";
-    if (index >= levels.indexOf("5k")) range = "5k-1k";
-    if (index >= levels.indexOf("1d")) range = "1d-5d";
-
-    let timeKey = 60;
-    if (dailyMinutes >= 180) timeKey = 180;
-    else if (dailyMinutes >= 120) timeKey = 120;
-
-    const config = programs[range] && programs[range][timeKey] ? programs[range][timeKey] : {
-        dailyGames: 2,
-        dailyTsumego: 10,
-        weeklyReview: 1,
-        fusekiFocus: "Fuseki de base",
-        chubanFocus: "Jeu milieu de partie",
-        yoseFocus: "Fin de partie"
-    };
-
-    // Génération des journées avec temps réalistes
-    const days = [
-        {
-            name: lang === 'fr' ? "LUNDI - FUSEKI" : "MONDAY - FUSEKI",
-            focus: config.fusekiFocus,
-            activities: [
-                { icon: "🧠", desc: lang === 'fr' ? "Étude fuseki" : "Fuseki study", time: "20min" },
-                { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties' : 'games'}`, time: `${config.dailyGames * 15}min` },
-                { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
-            ],
-            totalTime: getRealisticTime(dailyMinutes)
-        },
-        {
-            name: lang === 'fr' ? "MARDI - CHUBAN" : "TUESDAY - MIDDLE GAME",
-            focus: config.chubanFocus,
-            activities: [
-                { icon: "⚡", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties rapides' : 'fast games'}`, time: `${config.dailyGames * 15}min` },
-                { icon: "🤖", desc: lang === 'fr' ? "Analyse AI 1 partie" : "AI review 1 game", time: "15min" },
-                { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
-            ],
-            totalTime: getRealisticTime(dailyMinutes)
-        },
-        {
-            name: lang === 'fr' ? "MERCREDI - YOSE" : "WEDNESDAY - ENDGAME",
-            focus: config.yoseFocus,
-            activities: [
-                { icon: "📊", desc: lang === 'fr' ? "Étude yose" : "Yose study", time: "20min" },
-                { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties fin de partie' : 'endgame games'}`, time: `${config.dailyGames * 15}min` },
-                { icon: "📚", desc: lang === 'fr' ? "Exercices comptage" : "Counting drills", time: "10min" }
-            ],
-            totalTime: getRealisticTime(dailyMinutes)
-        },
-        {
-            name: lang === 'fr' ? "JEUDI - REVUE" : "THURSDAY - REVIEW",
-            focus: lang === 'fr' ? "Revue de partie" : "Game review",
-            activities: [
-                { icon: "🔍", desc: lang === 'fr' ? "Revue 1 partie (15min)" : "Review 1 game (15min)", time: "15min" },
-                { icon: "🎯", desc: `${config.dailyGames - 1} ${lang === 'fr' ? 'parties classiques' : 'classic games'}`, time: `${(config.dailyGames - 1) * 15}min` },
-                { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
-            ],
-            totalTime: getRealisticTime(dailyMinutes)
-        },
-        {
-            name: lang === 'fr' ? "VENDREDI - INTENSIF" : "FRIDAY - INTENSIVE",
-            focus: lang === 'fr' ? "Session intensive" : "Intensive session",
-            activities: [
-                { icon: "🏆", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties sérieuses' : 'serious games'}`, time: `${config.dailyGames * 20}min` },
-                { icon: "🤖", desc: lang === 'fr' ? "Analyse AI rapide" : "Quick AI review", time: "10min" },
-                { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
-            ],
-            totalTime: getRealisticTime(dailyMinutes)
-        },
-        {
-            name: lang === 'fr' ? "SAMEDI - LIBRE" : "SATURDAY - FREE",
-            focus: lang === 'fr' ? "Jeu libre" : "Free play",
-            activities: [
-                { icon: "🎨", desc: lang === 'fr' ? "Parties créatives" : "Creative games", time: "30min" },
-                { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` },
-                { icon: "📺", desc: lang === 'fr' ? "Vidéo pro ou stream" : "Pro video or stream", time: "10min" }
-            ],
-            totalTime: getRealisticTime(dailyMinutes)
-        },
-        {
-            name: lang === 'fr' ? "DIMANCHE - PLANIFICATION" : "SUNDAY - PLANNING",
-            focus: lang === 'fr' ? "Bilan & objectifs" : "Review & goals",
-            activities: [
-                { icon: "📈", desc: lang === 'fr' ? "Bilan de la semaine" : "Weekly review", time: "15min" },
-                { icon: "🎯", desc: lang === 'fr' ? "Objectifs suivants" : "Next goals", time: "10min" },
-                { icon: "🧘", desc: lang === 'fr' ? "Partie détente" : "Relaxed game", time: "20min" }
-            ],
-            totalTime: getRealisticTime(dailyMinutes)
-        }
-    ];
-
-    return {
-        days,
-        totalGames: config.dailyGames * 7,
-        totalTsumego: config.dailyTsumego * 7,
-        totalTime: Math.round(dailyMinutes * 7 / 60),
-        weeklyReviews: config.weeklyReview,
-        focusAreas: {
-            fuseki: config.fusekiFocus,
-            chuban: config.chubanFocus,
-            yose: config.yoseFocus
-        }
-    };
-}
 
         async function renderRanking() {
             const rankTable = document.getElementById('rankTable').querySelector('tbody');
@@ -2628,82 +2609,16 @@ function generateCustomProgram(level, dailyMinutes) {
             
             localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
             
+            // Mettre à jour les quêtes
+            if (games > 0) updateDashboardOnActivity('games', games);
+            if (tsu > 0) updateDashboardOnActivity('tsumego', tsu);
+            if (time > 0) updateDashboardOnActivity('time', time);
+            
             checkAchievements(charData);
             refresh();
             renderLog();
             document.getElementById('logForm').reset();
         }
-
-    
-    // ⭐⭐ AJOUTER CES LIGNES À LA FIN ⭐⭐
-    updateStreak();
-    
-    
-    // Analyser les notes pour créer des révisions automatiques
-    const notes = document.getElementById('notes').value.toLowerCase();
-    if (notes.includes("invasion") || notes.includes("envah")) {
-        addSpacedRepetition('invasion', 'Techniques d\'invasion: timing et support');
-    }
-    if (notes.includes("yose") || notes.includes("fin")) {
-        addSpacedRepetition('yose', 'Ordre des yose: jouer le plus gros premier');
-    }
-    if (notes.includes("joseki") || notes.includes("coin")) {
-        addSpacedRepetition('joseki', 'Choisis des joseki qui correspondent à ton style global');
-    }
-    if (notes.includes("tesuji") || notes.includes("coup technique")) {
-        addSpacedRepetition('tesuji', 'Les tesuji créent souvent des formes mutantes difficiles à contrer');
-    }
-
-// ========== AJOUTER ICI LE FEEDBACK LOOP ==========
-function showQuickFeedback(gameData) {
-    const feedbackHTML = `
-        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--glass); backdrop-filter: blur(10px); padding: 2rem; border-radius: var(--radius); z-index: 10000; border: 2px solid var(--rouge);">
-            <h3>🦊 Qu'as-tu appris de cette partie ?</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0;">
-                <button class="feedback-tag" onclick="tagLearning('invasion')">Invasion</button>
-                <button class="feedback-tag" onclick="tagLearning('joseki')">Joseki</button>
-                <button class="feedback-tag" onclick="tagLearning('yose')">Yose</button>
-                <button class="feedback-tag" onclick="tagLearning('tesuji')">Tesuji</button>
-                <button class="feedback-tag" onclick="tagLearning('life_death')">Vie & Mort</button>
-                <button class="feedback-tag" onclick="tagLearning('direction')">Direction</button>
-            </div>
-            <button onclick="closeFeedback()" style="margin-top: 1rem; padding: 0.5rem; background: #666; color: white; border: none; border-radius: 6px;">Fermer</button>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', feedbackHTML);
-}
-
-function tagLearning(tag) {
-    // Ajouter au spaced repetition
-    const lessons = {
-        'invasion': 'Les invasions réussissent mieux quand tu as un support nearby',
-        'joseki': 'Choisis des joseki qui correspondent à ton style global',
-        'yose': 'Joue le plus gros yose en premier, même s\'il semble petit',
-        'tesuji': 'Les tesuji créent souvent des formes mutantes difficiles à contrer',
-        'life_death': 'Un groupe vit avec 2 yeux ou une connexion sûre',
-        'direction': 'Joue du côté où ton adversaire veut aller'
-    };
-    
-    addSpacedRepetition(tag, lessons[tag]);
-    
-    // Fermer le feedback
-    closeFeedback();
-    
-    // XP bonus
-    if (activeChar) {
-        activeChar.xp += 5;
-        db.collection("characters").doc(activeChar.id).update({
-            xp: firebase.firestore.FieldValue.increment(5)
-        });
-        refresh();
-    }
-}
-
-function closeFeedback() {
-    const feedback = document.querySelector('[style*="position: fixed; top: 50%; left: 50%;"]');
-    if (feedback) feedback.remove();
-}
 
         function renderLog() {
             if (!activeChar) return;
@@ -3053,51 +2968,54 @@ function closeFeedback() {
             }
         }
 
-// ========== GESTION DU THÈME ==========
-function initTheme() {
-    const savedTheme = localStorage.getItem('foxTheme') || 'dark';
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    const theme = savedTheme === 'auto' ? (systemPrefersDark ? 'dark' : 'light') : savedTheme;
-    setTheme(theme);
-}
+        // ========== GESTION DU THÈME ==========
+        function initTheme() {
+            const savedTheme = localStorage.getItem('foxTheme') || 'dark';
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            const theme = savedTheme === 'auto' ? (systemPrefersDark ? 'dark' : 'light') : savedTheme;
+            setTheme(theme);
+        }
 
-function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('foxTheme', theme);
-    
-    const toggleBtn = document.getElementById('themeToggle');
-    if (toggleBtn) {
-        toggleBtn.textContent = theme === 'dark' ? '🌙 Mode Sombre' : '☀️ Mode Clair';
-    }
-    
-    // Mettre à jour la couleur dans les variables CSS
-    updateThemeColors();
-}
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('foxTheme', theme);
+            
+            const toggleBtn = document.getElementById('themeToggle');
+            if (toggleBtn) {
+                toggleBtn.textContent = theme === 'dark' ? '🌙 Mode Sombre' : '☀️ Mode Clair';
+            }
+            
+            // Mettre à jour la couleur dans les variables CSS
+            updateThemeColors();
+        }
 
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-}
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        }
 
-function updateThemeColors() {
-    // S'assurer que la couleur personnalisée reste cohérente
-    const customColor = activeChar?.theme || '#ff003c';
-    document.documentElement.style.setProperty('--rouge', customColor);
-}
+        function updateThemeColors() {
+            // S'assurer que la couleur personnalisée reste cohérente
+            const customColor = activeChar?.theme || '#ff003c';
+            document.documentElement.style.setProperty('--rouge', customColor);
+        }
 
-// Détection automatique des préférences système
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    const savedTheme = localStorage.getItem('foxTheme');
-    if (savedTheme === 'auto') {
-        setTheme(e.matches ? 'dark' : 'light');
-    }
-});
+        // Détection automatique des préférences système
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            const savedTheme = localStorage.getItem('foxTheme');
+            if (savedTheme === 'auto') {
+                setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
         
         // ========== INITIALISATION ==========
         document.addEventListener('DOMContentLoaded', function() {
             console.log("🎮 Fox RPG - Initialisation...");
+            
+            // Initialiser le thème
+            initTheme();
             
             // Événements de base
             document.getElementById('logForm').addEventListener('submit', function(e) {
@@ -3139,16 +3057,16 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =
                 loadChars();
                 
                 if (activeChar) {
-                updateStreak();
-                checkDailyReviews();
-            }
-        });
-    }).catch(error => {
-    console.error("❌ Firebase non disponible:", error);
-    alert("L'application nécessite une connexion Internet pour fonctionner.");
-});
+                    updateStreak();
+                    checkDailyReviews();
+                }
+            }).catch(error => {
+                console.error("❌ Firebase non disponible:", error);
+                alert("L'application nécessite une connexion Internet pour fonctionner.");
+            });
 
-console.log("✅ Fox RPG initialisé !");
+            console.log("✅ Fox RPG initialisé !");
+        });
     </script>
 </body>
 </html>
