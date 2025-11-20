@@ -1526,6 +1526,175 @@
         }
 
         function generateCustomProgram(level, dailyMinutes) {
+  const programs = {
+    "10k-5k": {
+      60: {
+        dailyGames: 2,
+        dailyTsumego: 10,
+        weeklyReview: 1,
+        fusekiFocus: "Placement 3-4 / 4-4, joseki simples",
+        chubanFocus: "Connexions, formes de base, vie & mort",
+        yoseFocus: "Yose 1-2 points, sente vs gote"
+      },
+      120: {
+        dailyGames: 3,
+        dailyTsumego: 20,
+        weeklyReview: 2,
+        fusekiFocus: "Joseki 3-3, approches, direction",
+        chubanFocus: "Invasion 3-3, réductions, attaques",
+        yoseFocus: "Yose de bord, comptage rapide"
+      },
+      180: {
+        dailyGames: 3,
+        dailyTsumego: 30,
+        weeklyReview: 3,
+        fusekiFocus: "Fuseki équilibré, influence vs territoire",
+        chubanFocus: "Groupes lourds, sacrifice, compensation",
+        yoseFocus: "Yose de connexion, ko, fin de partie"
+      }
+    },
+    "5k-1k": {
+      60: {
+        dailyGames: 2,
+        dailyTsumego: 15,
+        weeklyReview: 1,
+        fusekiFocus: "Direction globale, joseki 4-4",
+        chubanFocus: "Tesuji simples, attaques efficaces",
+        yoseFocus: "Yose 2-3 points, comptage"
+      },
+      120: {
+        dailyGames: 3,
+        dailyTsumego: 25,
+        weeklyReview: 2,
+        fusekiFocus: "Fuseki rapide vs lent, choix stratégiques",
+        chubanFocus: "Sacrifice, réduction, influence",
+        yoseFocus: "Yose de réduction, double sente"
+      },
+      180: {
+        dailyGames: 3,
+        dailyTsumego: 35,
+        weeklyReview: 3,
+        fusekiFocus: "Fuseki pro, innovation, style personnel",
+        chubanFocus: "Lecture 15+ coups, planification",
+        yoseFocus: "Yose 0.5-1 point, comptage précis"
+      }
+    },
+    "1d-5d": {
+      60: {
+        dailyGames: 2,
+        dailyTsumego: 20,
+        weeklyReview: 2,
+        fusekiFocus: "Joseki AI, fuseki créatif",
+        chubanFocus: "Tesuji complexes, stratégie",
+        yoseFocus: "Yose pro, microscopique"
+      },
+      120: {
+        dailyGames: 3,
+        dailyTsumego: 30,
+        weeklyReview: 3,
+        fusekiFocus: "Fuseki influence, contre-joseki",
+        chubanFocus: "Lecture 20+ coups, sacrifice avancé",
+        yoseFocus: "Yose de ko, fin de partie parfaite"
+      },
+      180: {
+        dailyGames: 3,
+        dailyTsumego: 40,
+        weeklyReview: 4,
+        fusekiFocus: "Fuseki maîtrisé, style personnel",
+        chubanFocus: "Innovation, intuition, créativité",
+        yoseFocus: "Yose 0.5 point, comptage exact"
+      }
+    }
+  };
+
+  // Détermination de la tranche
+  const levels = ["10k", "9k", "8k", "7k", "6k", "5k", "4k", "3k", "2k", "1k", "1d", "2d", "3d", "4d", "5d", "6d", "7d", "8d", "9d"];
+  const index = levels.indexOf(level);
+  let range = "10k-5k";
+  if (index >= levels.indexOf("5k")) range = "5k-1k";
+  if (index >= levels.indexOf("1d")) range = "1d-5d";
+
+  let timeKey = 60;
+  if (dailyMinutes >= 180) timeKey = 180;
+  else if (dailyMinutes >= 120) timeKey = 120;
+
+  const config = programs[range][timeKey];
+
+  // Génération des journées avec **temps réalistes**
+  const days = [
+    {
+      name: lang === 'fr' ? "LUNDI - FUSEKI" : "MONDAY - FUSEKI",
+      focus: config.fusekiFocus,
+      activities: [
+        { icon: "🧠", desc: lang === 'fr' ? "Étude fuseki" : "Fuseki study", time: "20min" },
+        { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties' : 'games'}`, time: `${config.dailyGames * 15}min` },
+        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
+      ]
+    },
+    {
+      name: lang === 'fr' ? "MARDI - CHUBAN" : "TUESDAY - MIDDLE GAME",
+      focus: config.chubanFocus,
+      activities: [
+        { icon: "⚡", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties rapides' : 'fast games'}`, time: `${config.dailyGames * 15}min` },
+        { icon: "🤖", desc: lang === 'fr' ? "Analyse AI 1 partie" : "AI review 1 game", time: "15min" },
+        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
+      ]
+    },
+    {
+      name: lang === 'fr' ? "MERCREDI - YOSE" : "WEDNESDAY - ENDGAME",
+      focus: config.yoseFocus,
+      activities: [
+        { icon: "📊", desc: lang === 'fr' ? "Étude yose" : "Yose study", time: "20min" },
+        { icon: "🎯", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties fin de partie' : 'endgame games'}`, time: `${config.dailyGames * 15}min` },
+        { icon: "📚", desc: lang === 'fr' ? "Exercices comptage" : "Counting drills", time: "10min" }
+      ]
+    },
+    {
+      name: lang === 'fr' ? "JEUDI - REVUE" : "THURSDAY - REVIEW",
+      focus: lang === 'fr' ? "Revue de partie" : "Game review",
+      activities: [
+        { icon: "🔍", desc: lang === 'fr' ? "Revue 1 partie (15min)" : "Review 1 game (15min)", time: "15min" },
+        { icon: "🎯", desc: `${config.dailyGames - 1} ${lang === 'fr' ? 'parties classiques' : 'classic games'}`, time: `${(config.dailyGames - 1) * 15}min` },
+        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
+      ]
+    },
+    {
+      name: lang === 'fr' ? "VENDREDI - INTENSIF" : "FRIDAY - INTENSIVE",
+      focus: lang === 'fr' ? "Session intensive" : "Intensive session",
+      activities: [
+        { icon: "🏆", desc: `${config.dailyGames} ${lang === 'fr' ? 'parties sérieuses' : 'serious games'}`, time: `${config.dailyGames * 20}min` },
+        { icon: "🤖", desc: lang === 'fr' ? "Analyse AI rapide" : "Quick AI review", time: "10min" },
+        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` }
+      ]
+    },
+    {
+      name: lang === 'fr' ? "SAMEDI - LIBRE" : "SATURDAY - FREE",
+      focus: lang === 'fr' ? "Jeu libre" : "Free play",
+      activities: [
+        { icon: "🎨", desc: lang === 'fr' ? "Parties créatives" : "Creative games", time: "30min" },
+        { icon: "🧩", desc: `${config.dailyTsumego} tsumego`, time: `${Math.min(config.dailyTsumego * 2, 20)}min` },
+        { icon: "📺", desc: lang === 'fr' ? "Vidéo pro ou stream" : "Pro video or stream", time: "10min" }
+      ]
+    },
+    {
+      name: lang === 'fr' ? "DIMANCHE - PLANIFICATION" : "SUNDAY - PLANNING",
+      focus: lang === 'fr' ? "Bilan & objectifs" : "Review & goals",
+      activities: [
+        { icon: "📈", desc: lang === 'fr' ? "Bilan de la semaine" : "Weekly review", time: "15min" },
+        { icon: "🎯", desc: lang === 'fr' ? "Objectifs suivants" : "Next goals", time: "10min" },
+        { icon: "🧘", desc: lang === 'fr' ? "Partie détente" : "Relaxed game", time: "20min" }
+      ]
+    }
+  ];
+
+  return {
+    days,
+    totalGames: config.dailyGames * 7,
+    totalTsumego: config.dailyTsumego * 7,
+    totalTime: dailyMinutes * 7,
+    weeklyReviews: config.weeklyReview
+  };
+}
             console.log("🔍 Génération programme pour:", level, "avec", dailyMinutes, "minutes");
             
             const programs = {
@@ -1741,7 +1910,6 @@
                     yose: config.yoseFocus
                 }
             };
-        }
 
         async function renderRanking() {
             const rankTable = document.getElementById('rankTable').querySelector('tbody');
