@@ -1135,15 +1135,6 @@ function displayStreak(streak, multiplier) {
         refresh();
     }
 }
-    const streakHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
-            <div style="font-size: 1.2rem;">${streak >= 7 ? '🔥' : '⚡'}</div>
-            <div>
-                <div style="font-weight: bold; font-size: 0.9rem;">Streak: ${streak} jours</div>
-                <div style="font-size: 0.7rem; opacity: 0.8;">Multiplicateur XP: ${multiplier}x</div>
-            </div>
-        </div>
-    `;
     
     // Ajouter à l'interface
     const existingStreak = document.getElementById('streakDisplay');
