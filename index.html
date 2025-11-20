@@ -1019,50 +1019,122 @@
 
         // ========== STREAK SYSTEM ==========
 function updateStreak() {
-    if (!activeChar) return;
+    if (!activeChar) {
+        console.log("❌ Aucun personnage connecté pour updateStreak");
+        return;
+    }
+    
+    // Initialiser si nécessaire
+    if (activeChar.streak === undefined) {
+        activeChar.streak = 0;
+        activeChar.streakMultiplier = 1;
+        console.log("🆕 Streak initialisé à 0");
+    }
     
     const today = new Date().toDateString();
-    const lastLogin = activeChar.lastLogin ? new Date(activeChar.lastLogin.toDate ? activeChar.lastLogin.toDate() : activeChar.lastLogin).toDateString() : null;
     
-    let streak = activeChar.streak || 0;
-    let streakMultiplier = activeChar.streakMultiplier || 1;
+    // Gérer le format de lastLogin
+    let lastLoginDate = null;
+    if (activeChar.lastLogin) {
+        if (activeChar.lastLogin.toDate) {
+            lastLoginDate = activeChar.lastLogin.toDate().toDateString();
+        } else if (activeChar.lastLogin instanceof Date) {
+            lastLoginDate = activeChar.lastLogin.toDateString();
+        } else {
+            lastLoginDate = new Date(activeChar.lastLogin).toDateString();
+        }
+    }
+    
+    console.log("📅 Streak Debug:");
+    console.log("  - Aujourd'hui:", today);
+    console.log("  - Dernière connexion:", lastLoginDate);
+    console.log("  - Streak avant:", activeChar.streak);
     
     // Vérifier si c'est un nouveau jour
-    if (lastLogin !== today) {
+    if (lastLoginDate !== today) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         
-        if (lastLogin === yesterday.toDateString()) {
+        console.log("  - Hier:", yesterday.toDateString());
+        
+        if (lastLoginDate === yesterday.toDateString()) {
             // Jour consécutif
-            streak++;
-        } else if (lastLogin && lastLogin !== today) {
+            activeChar.streak++;
+            console.log("🔥 Jour consécutif! Nouveau streak:", activeChar.streak);
+        } else if (lastLoginDate && lastLoginDate !== today) {
             // Rupture du streak
-            streak = 1;
+            console.log("💥 Rupture du streak - écart de plus d'un jour");
+            activeChar.streak = 1;
         } else {
-            // Premier login
-            streak = 1;
+            // Premier login ou même jour
+            console.log("🎯 Premier login ou même jour");
+            activeChar.streak = Math.max(activeChar.streak, 1);
         }
         
         // Calculer le multiplicateur
-        streakMultiplier = 1 + (Math.floor(streak / 7) * 0.2); // +20% chaque semaine
+        activeChar.streakMultiplier = 1 + (Math.floor(activeChar.streak / 7) * 0.2);
         
-        // Sauvegarder
-        activeChar.streak = streak;
-        activeChar.streakMultiplier = streakMultiplier;
+        // Mettre à jour lastLogin
         activeChar.lastLogin = new Date();
         
-        db.collection("characters").doc(activeChar.id).update({
-            streak: streak,
-            streakMultiplier: streakMultiplier,
-            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        // Sauvegarder dans Firebase
+        if (db && activeChar.id) {
+            db.collection("characters").doc(activeChar.id).update({
+                streak: activeChar.streak,
+                streakMultiplier: activeChar.streakMultiplier,
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                console.log("💾 Streak sauvegardé dans Firebase:", activeChar.streak);
+            }).catch(error => {
+                console.error("❌ Erreur sauvegarde streak:", error);
+            });
+        }
+    } else {
+        console.log("⏰ Même jour - pas de mise à jour du streak");
     }
     
     // Afficher le streak
-    displayStreak(streak, streakMultiplier);
+    displayStreak(activeChar.streak, activeChar.streakMultiplier);
+    console.log("🎯 Streak final:", activeChar.streak, "Multiplicateur:", activeChar.streakMultiplier);
 }
 
 function displayStreak(streak, multiplier) {
+    const streakHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+            <div style="font-size: 1.2rem;">${streak >= 7 ? '🔥' : '⚡'}</div>
+            <div>
+                <div style="font-weight: bold; font-size: 0.9rem;">Streak: ${streak} jours</div>
+                <div style="font-size: 0.7rem; opacity: 0.8;">Multiplicateur XP: ${multiplier.toFixed(1)}x</div>
+            </div>
+        </div>
+    `;
+    
+    // Ajouter à l'interface
+    const existingStreak = document.getElementById('streakDisplay');
+    if (existingStreak) {
+        existingStreak.innerHTML = streakHTML;
+    } else {
+        const streakDiv = document.createElement('div');
+        streakDiv.id = 'streakDisplay';
+        streakDiv.innerHTML = streakHTML;
+        document.querySelector('#activeEmoji').parentNode.appendChild(streakDiv);
+    }
+    
+    // Récompenses spéciales
+    if (streak === 7) {
+        alert("🎉 Streak de 7 jours ! +20% XP permanent !");
+    }
+    if (streak === 30) {
+        alert("🏆 STREAK LEGENDAIRE ! Avatar Fox On Fire débloqué !");
+        activeChar.avatar = "🦊🔥";
+        if (db && activeChar.id) {
+            db.collection("characters").doc(activeChar.id).update({
+                avatar: "🦊🔥"
+            });
+        }
+        refresh();
+    }
+}
     const streakHTML = `
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
             <div style="font-size: 1.2rem;">${streak >= 7 ? '🔥' : '⚡'}</div>
@@ -1096,7 +1168,6 @@ function displayStreak(streak, multiplier) {
         });
         refresh();
     }
-}
 
         // ========== TRADUCTIONS ==========
         const trad = {
@@ -1348,33 +1419,41 @@ function removeNotification() {
                 profileBtn.style.display = 'none';
             }
         }
-
-        function loginCharacter(charIndex) {
-            if (charIndex === undefined || charIndex === null || charIndex < 0) {
-                console.error("❌ Index de personnage invalide:", charIndex);
-                return;
-            }
-            
-            if (!characters[charIndex]) {
-                console.error("❌ Personnage non trouvé à l'index:", charIndex);
-                return;
-            }
-            
-            activeChar = characters[charIndex];
-            
-            // Mettre à jour la navigation (CELLE-CI MASQUERA "CRÉER UN PERSONNAGE")
-            updateNavigation();
-            
-            refresh();
-            renderLog();
-            renderAchievements();
-            renderWeeklyProgram();
-            checkGoalAchievement();
-            
-            showPage('game');
-            
-            console.log("✅ Personnage connecté");
-        }
+function loginCharacter(charIndex) {
+    if (charIndex === undefined || charIndex === null || charIndex < 0) {
+        console.error("❌ Index de personnage invalide:", charIndex);
+        return;
+    }
+    
+    if (!characters[charIndex]) {
+        console.error("❌ Personnage non trouvé à l'index:", charIndex);
+        return;
+    }
+    
+    activeChar = characters[charIndex];
+    
+    // Initialiser le streak si nécessaire
+    if (activeChar.streak === undefined) {
+        activeChar.streak = 0;
+        activeChar.streakMultiplier = 1;
+    }
+    
+    // Mettre à jour la navigation
+    updateNavigation();
+    
+    refresh();
+    renderLog();
+    renderAchievements();
+    renderWeeklyProgram();
+    checkGoalAchievement();
+    
+    // Mettre à jour le streak APRÈS la connexion
+    updateStreak();
+    
+    showPage('game');
+    
+    console.log("✅ Personnage connecté");
+}
         
         async function createCharacter() {
             const name = document.getElementById('charName').value.trim();
@@ -2113,81 +2192,6 @@ function generateCustomProgram(level, dailyMinutes) {
             document.getElementById('logForm').reset();
         }
 
-            // ⭐⭐ AJOUTER CES LIGNES À LA FIN DE addLogEntry() ⭐⭐
-    updateStreak();
-    async function addLogEntry() {
-    if (!activeChar) return;
-    
-    const day = document.getElementById('logDay').value;
-    const games = parseInt(document.getElementById('games').value);
-    const wins = parseInt(document.getElementById('wins').value);
-    const tsu = parseInt(document.getElementById('tsu').value);
-    const time = parseInt(document.getElementById('time').value);
-    const oppLevel = document.getElementById('oppLevel').value;
-    const notes = document.getElementById('notes').value;
-    
-    if (wins > games) {
-        alert("Le nombre de victoires ne peut pas être supérieur au nombre de parties !");
-        return;
-    }
-    
-    const xpGain = games * 10 + tsu * 2 + Math.floor(time / 10);
-    
-    try {
-        // Sauvegarder les données d'entraînement dans Firebase
-        const trainingData = {
-            day: day,
-            games: games,
-            wins: wins,
-            tsu: tsu,
-            time: time,
-            oppLevel: oppLevel,
-            notes: notes,
-            date: new Date().toISOString(),
-            xpGain: xpGain
-        };
-        
-        await db.collection("training_logs").add({
-            ...trainingData,
-            characterId: activeChar.id,
-            characterName: activeChar.name,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // Mettre à jour l'XP dans Firebase
-        const newXp = activeChar.xp + xpGain;
-        await db.collection("characters").doc(activeChar.id).update({
-            xp: newXp,
-            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // Mettre à jour localement
-        activeChar.xp = newXp;
-        
-    } catch (error) {
-        console.error("Erreur sauvegarde Firebase:", error);
-        alert("Erreur de sauvegarde: " + error.message);
-        return;
-    }
-    
-    // Sauvegarde locale du carnet (optionnel)
-    const charData = JSON.parse(localStorage.getItem('fox7d-' + activeChar.id) || '{}');
-    charData[day] = {
-        games: games,
-        wins: wins,
-        tsu: tsu,
-        time: time,
-        oppLevel: oppLevel,
-        notes: notes,
-        date: new Date().toISOString()
-    };
-    
-    localStorage.setItem('fox7d-' + activeChar.id, JSON.stringify(charData));
-    
-    checkAchievements(charData);
-    refresh();
-    renderLog();
-    document.getElementById('logForm').reset();
     
     // ⭐⭐ AJOUTER CES LIGNES À LA FIN ⭐⭐
     updateStreak();
@@ -2206,7 +2210,6 @@ function generateCustomProgram(level, dailyMinutes) {
     if (notesText.includes("tesuji") || notesText.includes("coup technique")) {
         addSpacedRepetition('tesuji', 'Les tesuji créent souvent des formes mutantes difficiles à contrer');
     }
-}
     
     // Analyser les notes pour créer des révisions automatiques
     const notes = document.getElementById('notes').value.toLowerCase();
