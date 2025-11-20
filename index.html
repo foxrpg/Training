@@ -2196,20 +2196,6 @@ function generateCustomProgram(level, dailyMinutes) {
     // ⭐⭐ AJOUTER CES LIGNES À LA FIN ⭐⭐
     updateStreak();
     
-    // Analyser les notes pour créer des révisions automatiques
-    const notesText = document.getElementById('notes').value.toLowerCase();
-    if (notesText.includes("invasion") || notesText.includes("envah")) {
-        addSpacedRepetition('invasion', 'Techniques d\'invasion: timing et support');
-    }
-    if (notesText.includes("yose") || notesText.includes("fin")) {
-        addSpacedRepetition('yose', 'Ordre des yose: jouer le plus gros premier');
-    }
-    if (notesText.includes("joseki") || notesText.includes("coin")) {
-        addSpacedRepetition('joseki', 'Choisis des joseki qui correspondent à ton style global');
-    }
-    if (notesText.includes("tesuji") || notesText.includes("coup technique")) {
-        addSpacedRepetition('tesuji', 'Les tesuji créent souvent des formes mutantes difficiles à contrer');
-    }
     
     // Analyser les notes pour créer des révisions automatiques
     const notes = document.getElementById('notes').value.toLowerCase();
