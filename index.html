@@ -871,6 +871,7 @@
         <button onclick="showPage('ranking')"><span id="navRank">Classement</span></button>
         <button onclick="showPage('profile')" id="navProfile" style="display:none;">👤 Profil</button>
         <button onclick="showPage('ogsRanking')" id="navOGS" style="display:none;">🌐 OGS Live</button>
+        <button onclick="showPage('search')" id="navSearch" style="display:none;">🔍 Recherche</button>
     </div>
 
     <!-- PAGE 1 : ACCUEIL -->
@@ -1162,6 +1163,14 @@
             </div>
         </div>
 
+        <!-- SYSTÈME DE NIVEAUX -->
+        <div class="frame">
+            <h2>⭐ Système de Niveaux</h2>
+            <div id="levelDisplay">
+                <!-- Contenu généré dynamiquement -->
+            </div>
+        </div>
+
         <!-- TABLEAU DE BORD PRINCIPAL EN 2 COLONNES -->
         <div class="frame">
             <h2>📊 Tableau de Bord</h2>
@@ -1352,6 +1361,28 @@
         </div>
     </div>
 
+    <!-- PAGE 9 : RECHERCHE -->
+    <div id="search" class="page">
+        <div class="frame">
+            <h2>🔍 Rechercher un Joueur</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="playerSearch" class="form-input" placeholder="Nom du joueur..." style="flex: 1;">
+                <button onclick="searchPlayer()" class="btn-primary">Rechercher</button>
+            </div>
+            <div id="searchResults" style="margin-top: 1rem;"></div>
+        </div>
+    </div>
+
+    <!-- PAGE 10 : PROFIL VISITEUR -->
+    <div id="playerProfile" class="page">
+        <!-- Contenu généré dynamiquement -->
+    </div>
+
+    <!-- PAGE 11 : IMPORT OGS -->
+    <div id="ogsImport" class="page">
+        <!-- Contenu généré dynamiquement -->
+    </div>
+
     <!-- CHATBOX -->
     <div id="chatbox">
         <div class="chat-header">
@@ -1381,6 +1412,48 @@
 
         // Niveaux pour la conversion
         const levels = ['10k', '9k', '8k', '7k', '6k', '5k', '4k', '3k', '2k', '1k', '1d', '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d'];
+
+        // ========== SYSTÈME DE NIVEAUX ==========
+        const levelSystem = {
+            levels: [
+                { level: 1, xpRequired: 0, rank: "Novice", rewards: [] },
+                { level: 2, xpRequired: 100, rank: "Apprenti", rewards: [] },
+                { level: 3, xpRequired: 300, rank: "Joueur", rewards: [] },
+                { level: 4, xpRequired: 600, rank: "Tacticien", rewards: [] },
+                { level: 5, xpRequired: 1000, rank: "Expert", rewards: [] },
+                { level: 6, xpRequired: 1500, rank: "Maître", rewards: [] },
+                { level: 7, xpRequired: 2100, rank: "Grand Maître", rewards: [] },
+                { level: 8, xpRequired: 2800, rank: "Légende", rewards: [] },
+                { level: 9, xpRequired: 3600, rank: "Mythique", rewards: [] },
+                { level: 10, xpRequired: 4500, rank: "Divin", rewards: [] }
+            ],
+            
+            getCurrentLevel(xp) {
+                for (let i = this.levels.length - 1; i >= 0; i--) {
+                    if (xp >= this.levels[i].xpRequired) {
+                        return this.levels[i];
+                    }
+                }
+                return this.levels[0];
+            },
+            
+            getNextLevel(xp) {
+                const current = this.getCurrentLevel(xp);
+                const nextIndex = this.levels.findIndex(l => l.level === current.level) + 1;
+                return this.levels[nextIndex] || null;
+            },
+            
+            getProgress(xp) {
+                const current = this.getCurrentLevel(xp);
+                const next = this.getNextLevel(xp);
+                
+                if (!next) return 100;
+                
+                const xpInCurrent = xp - current.xpRequired;
+                const xpNeeded = next.xpRequired - current.xpRequired;
+                return Math.min((xpInCurrent / xpNeeded) * 100, 100);
+            }
+        };
 
         // ========== TRADUCTIONS ==========
         const trad = {
@@ -1460,10 +1533,13 @@
             if (name === 'training' && activeChar) {
                 renderWeeklyProgram();
                 renderAchievements();
-                checkGoalAchievement();
+                checkAndUpdateGoal();
                 renderLog();
             }
             if (name === 'ogsRanking') loadOGSRanking();
+            if (name === 'search') renderSearchPage();
+            if (name === 'playerProfile') renderPlayerProfilePage();
+            if (name === 'ogsImport') renderOGSImportPage();
         }
 
         function setLang(l) {
@@ -1483,10 +1559,9 @@
             });
             
             if (activeChar) {
-                refresh();
                 renderLog();
                 renderAchievements();
-                checkGoalAchievement();
+                checkAndUpdateGoal();
                 renderProfile();
             }
             if (activeChar) renderWeeklyProgram();
@@ -1507,6 +1582,7 @@
             const profileBtn = document.getElementById('navProfile');
             const createBtn = document.querySelector('button[onclick="showPage(\'create\')"]');
             const ogsBtn = document.getElementById('navOGS');
+            const searchBtn = document.getElementById('navSearch');
             
             if (activeChar) {
                 loginBtn.style.display = 'none';
@@ -1514,6 +1590,7 @@
                 dashboardBtn.style.display = 'block';
                 trainingBtn.style.display = 'block';
                 profileBtn.style.display = 'block';
+                searchBtn.style.display = 'block';
                 if (ogsBtn) ogsBtn.style.display = 'block';
             } else {
                 loginBtn.style.display = 'block';
@@ -1521,6 +1598,7 @@
                 dashboardBtn.style.display = 'none';
                 trainingBtn.style.display = 'none';
                 profileBtn.style.display = 'none';
+                searchBtn.style.display = 'none';
                 if (ogsBtn) ogsBtn.style.display = 'none';
             }
         }
@@ -1547,7 +1625,7 @@
             renderLog();
             renderAchievements();
             renderWeeklyProgram();
-            checkGoalAchievement();
+            checkAndUpdateGoal();
             renderDashboard();
             updateStreak();
             
@@ -1679,25 +1757,6 @@
         }
 
         // ========== FONCTIONS D'AFFICHAGE ==========
-        function refresh() {
-    if (!activeChar) return;
-    
-    // Supprimer les références aux éléments qui n'existent pas
-    // Ces éléments ne sont pas dans le HTML fourni
-    /*
-    document.getElementById('activeEmoji').textContent = activeChar.avatar;
-    document.getElementById('activeName').textContent = activeChar.name;
-    document.getElementById('activeLvl').textContent = `Niveau ${activeChar.level}`;
-    document.getElementById('activeQuote').textContent = activeChar.quote;
-    
-    const xpPercent = Math.min((activeChar.xp / 1000) * 100, 100);
-    document.getElementById('xpFill').style.width = xpPercent + '%';
-    document.getElementById('xpText').textContent = `${activeChar.xp} / 1000 XP`;
-    */
-    
-    console.log("✅ Personnage rafraîchi:", activeChar.name);
-}
-
         function updateProgress() {
             if (!activeChar) return;
             
@@ -1746,58 +1805,60 @@
             });
         }
 
-        function checkGoalAchievement() {
-    if (!activeChar) return;
-    
-    const currentLevel = activeChar.level;
-    const goalLevel = activeChar.goal;
-    const currentIndex = levels.indexOf(currentLevel);
-    const goalIndex = levels.indexOf(goalLevel);
-    
-    if (currentIndex >= goalIndex) {
-        // Vérifier si les éléments existent avant de les manipuler
-        const goalAchievedBtn = document.getElementById('goalAchievedBtn');
-        const dashboardGoalAchievedBtn = document.getElementById('dashboardGoalAchievedBtn');
-        
-        if (goalAchievedBtn) goalAchievedBtn.style.display = 'block';
-        if (dashboardGoalAchievedBtn) dashboardGoalAchievedBtn.style.display = 'block';
-    } else {
-        const goalAchievedBtn = document.getElementById('goalAchievedBtn');
-        const dashboardGoalAchievedBtn = document.getElementById('dashboardGoalAchievedBtn');
-        
-        if (goalAchievedBtn) goalAchievedBtn.style.display = 'none';
-        if (dashboardGoalAchievedBtn) dashboardGoalAchievedBtn.style.display = 'none';
-    }
-}
-        // ========== FONCTIONS DASHBOARD CORRIGÉES ==========
-
-        // Fonction pour obtenir les statistiques de win-rate depuis le carnet
-        function getWinRateFromLogbook() {
-            if (!activeChar) return 50;
+        // ========== SYSTÈME GOAL AMÉLIORÉ ==========
+        function checkAndUpdateGoal() {
+            if (!activeChar) return;
             
-            return new Promise((resolve) => {
-                db.collection("training_logs")
-                    .where("characterId", "==", activeChar.id)
-                    .get()
-                    .then((snapshot) => {
-                        let totalGames = 0;
-                        let totalWins = 0;
-                        
-                        snapshot.forEach((doc) => {
-                            const entry = doc.data();
-                            totalGames += entry.games || 0;
-                            totalWins += entry.wins || 0;
-                        });
-                        
-                        const winRate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 50;
-                        resolve(winRate);
-                    })
-                    .catch((error) => {
-                        console.error("Erreur calcul win-rate:", error);
-                        resolve(50);
-                    });
-            });
+            const currentIndex = levels.indexOf(activeChar.level);
+            const goalIndex = levels.indexOf(activeChar.goal);
+            
+            const goalAchievedBtn = document.getElementById('goalAchievedBtn');
+            const dashboardGoalAchievedBtn = document.getElementById('dashboardGoalAchievedBtn');
+            
+            if (currentIndex >= goalIndex) {
+                if (goalAchievedBtn) goalAchievedBtn.style.display = 'block';
+                if (dashboardGoalAchievedBtn) dashboardGoalAchievedBtn.style.display = 'block';
+            } else {
+                if (goalAchievedBtn) goalAchievedBtn.style.display = 'none';
+                if (dashboardGoalAchievedBtn) dashboardGoalAchievedBtn.style.display = 'none';
+            }
         }
+
+        function goalAchieved() {
+            if (!activeChar) return;
+            
+            const newGoal = prompt(
+                `🎉 Félicitations ! Vous avez atteint votre objectif ${activeChar.goal} !\n\n` +
+                `Entrez votre nouvel objectif (ex: 5d, 7d, etc.) :`
+            );
+            
+            if (newGoal && levels.includes(newGoal)) {
+                activeChar.goal = newGoal;
+                if (db && activeChar.id) {
+                    db.collection("characters").doc(activeChar.id).update({
+                        goal: newGoal
+                    });
+                }
+                
+                const xpReward = 500;
+                activeChar.xp += xpReward;
+                if (db && activeChar.id) {
+                    db.collection("characters").doc(activeChar.id).update({
+                        xp: firebase.firestore.FieldValue.increment(xpReward)
+                    });
+                }
+                
+                showNotification(`🎯 Nouvel objectif défini : ${newGoal} ! +${xpReward} XP`);
+                checkAndUpdateGoal();
+                renderDashboard();
+                updateLevelDisplay();
+                
+            } else if (newGoal) {
+                alert("Niveau invalide. Choisissez parmi : " + levels.join(', '));
+            }
+        }
+
+        // ========== FONCTIONS DASHBOARD ==========
 
         // Fonction pour calculer les statistiques globales
         async function calculateGlobalStats() {
@@ -1832,10 +1893,41 @@
             }
         }
 
+        // Mettre à jour l'affichage du niveau
+        function updateLevelDisplay() {
+            if (!activeChar) return;
+            
+            const currentLevel = levelSystem.getCurrentLevel(activeChar.xp);
+            const nextLevel = levelSystem.getNextLevel(activeChar.xp);
+            const progress = levelSystem.getProgress(activeChar.xp);
+            
+            const levelDisplay = document.getElementById('levelDisplay');
+            if (levelDisplay) {
+                levelDisplay.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 1rem;">
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--rouge);">
+                            Niveau ${currentLevel.level}
+                        </div>
+                        <div style="font-size: 1.2rem; opacity: 0.8; margin-bottom: 0.5rem;">${currentLevel.rank}</div>
+                        <div class="progress-mini" style="margin: 1rem auto; width: 80%;">
+                            <div class="progress-mini-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div style="font-size: 0.8rem;">
+                            ${activeChar.xp} XP / ${nextLevel ? nextLevel.xpRequired + ' XP' : 'MAX'}
+                        </div>
+                        ${nextLevel ? `
+                            <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 0.5rem;">
+                                Prochain rang: ${nextLevel.rank}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+        }
+
         async function renderDashboard() {
             if (!activeChar) return;
             
-            // Mettre à jour le header
             document.getElementById('dashboardEmoji').textContent = activeChar.avatar;
             document.getElementById('dashboardName').textContent = activeChar.name;
             document.getElementById('dashboardLvl').textContent = `Niveau ${activeChar.level}`;
@@ -1844,16 +1936,11 @@
             document.getElementById('dashboardXpFill').style.width = xpPercent + '%';
             document.getElementById('dashboardXpText').textContent = `${activeChar.xp} / 1000 XP`;
             
-            // Mettre à jour la progression
             updateDashboardProgress();
-            
-            // Rendre le tableau de bord principal avec les vraies stats
             await renderMainDashboard();
-            
-            // Rendre les quêtes
             renderDashboardQuests();
+            updateLevelDisplay();
             
-            // Afficher/masquer la section OGS
             const ogsSection = document.getElementById('ogsDashboardSection');
             if (activeChar.ogsUsername) {
                 ogsSection.style.display = 'block';
@@ -1884,13 +1971,11 @@
         }
 
         async function renderMainDashboard() {
-            // Calculer les vraies statistiques
             const globalStats = await calculateGlobalStats();
             const dailyXP = calculateDailyXP();
             const quests = getDailyQuests();
             const completedQuests = quests.filter(q => q.completed && q.xpClaimed).length;
             
-            // Mettre à jour les statistiques rapides
             document.getElementById('quickStatsContent').innerHTML = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
                     <div>
@@ -1912,7 +1997,6 @@
                 </div>
             `;
             
-            // Mettre à jour la progression quotidienne
             document.getElementById('dailyProgressContent').innerHTML = `
                 <div class="stat-number">${dailyXP} XP</div>
                 <div class="stat-label">Gagnés aujourd'hui</div>
@@ -1926,7 +2010,6 @@
                 </div>
             `;
             
-            // Mettre à jour l'objectif
             document.getElementById('goalContent').innerHTML = `
                 <div class="stat-number">${activeChar.goal}</div>
                 <div class="stat-label">Niveau cible</div>
@@ -1936,7 +2019,6 @@
                 <div class="stat-label">${calculateGoalProgress()}% vers l'objectif</div>
             `;
             
-            // Mettre à jour les succès
             document.getElementById('achievementsContent').innerHTML = `
                 <div class="stat-number">${activeChar.achievements ? activeChar.achievements.length : 0}</div>
                 <div class="stat-label">Débloqués</div>
@@ -1981,7 +2063,7 @@
             return 'Tous les succès débloqués!';
         }
 
-        // ========== SYSTÈME DE QUÊTES CORRIGÉ ==========
+        // ========== SYSTÈME DE QUÊTES ==========
 
         function getDailyQuests() {
             const today = new Date().toDateString();
@@ -2206,44 +2288,42 @@
         }
 
         function displayStreak(streak, multiplier) {
-    const streakHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
-            <div style="font-size: 1.2rem;">${streak >= 7 ? '🔥' : '⚡'}</div>
-            <div>
-                <div style="font-weight: bold; font-size: 0.9rem;">Streak: ${streak} jours</div>
-                <div style="font-size: 0.7rem; opacity: 0.8;">Multiplicateur XP: ${multiplier.toFixed(1)}x</div>
-            </div>
-        </div>
-    `;
-    
-    // Vérifier si l'élément existe avant de l'utiliser
-    const dashboardEmoji = document.getElementById('dashboardEmoji');
-    if (dashboardEmoji) {
-        const existingStreak = document.getElementById('streakDisplay');
-        if (existingStreak) {
-            existingStreak.innerHTML = streakHTML;
-        } else {
-            const streakDiv = document.createElement('div');
-            streakDiv.id = 'streakDisplay';
-            streakDiv.innerHTML = streakHTML;
-            dashboardEmoji.parentNode.appendChild(streakDiv);
+            const streakHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+                    <div style="font-size: 1.2rem;">${streak >= 7 ? '🔥' : '⚡'}</div>
+                    <div>
+                        <div style="font-weight: bold; font-size: 0.9rem;">Streak: ${streak} jours</div>
+                        <div style="font-size: 0.7rem; opacity: 0.8;">Multiplicateur XP: ${multiplier.toFixed(1)}x</div>
+                    </div>
+                </div>
+            `;
+            
+            const dashboardEmoji = document.getElementById('dashboardEmoji');
+            if (dashboardEmoji) {
+                const existingStreak = document.getElementById('streakDisplay');
+                if (existingStreak) {
+                    existingStreak.innerHTML = streakHTML;
+                } else {
+                    const streakDiv = document.createElement('div');
+                    streakDiv.id = 'streakDisplay';
+                    streakDiv.innerHTML = streakHTML;
+                    dashboardEmoji.parentNode.appendChild(streakDiv);
+                }
+            }
+            
+            if (streak === 7) {
+                alert("🎉 Streak de 7 jours ! +20% XP permanent !");
+            }
+            if (streak === 30) {
+                alert("🏆 STREAK LEGENDAIRE ! Avatar Fox On Fire débloqué !");
+                activeChar.avatar = "🦊🔥";
+                if (db && activeChar.id) {
+                    db.collection("characters").doc(activeChar.id).update({
+                        avatar: "🦊🔥"
+                    });
+                }
+            }
         }
-    }
-    
-    if (streak === 7) {
-        alert("🎉 Streak de 7 jours ! +20% XP permanent !");
-    }
-    if (streak === 30) {
-        alert("🏆 STREAK LEGENDAIRE ! Avatar Fox On Fire débloqué !");
-        activeChar.avatar = "🦊🔥";
-        if (db && activeChar.id) {
-            db.collection("characters").doc(activeChar.id).update({
-                avatar: "🦊🔥"
-            });
-        }
-        // refresh(); // Commenté car refresh() est vide maintenant
-    }
-}
 
         // ========== PROGRAMME D'ENTRAINEMENT ==========
         function getDailyMinutesFromTime(timeString) {
@@ -2638,7 +2718,6 @@
                 
                 activeChar.xp = newXp;
                 
-                // Mettre à jour les quêtes
                 if (games > 0) updateDashboardOnActivity('games', games);
                 if (tsu > 0) updateDashboardOnActivity('tsumego', tsu);
                 if (time > 0) updateDashboardOnActivity('time', time);
@@ -2666,7 +2745,6 @@
             renderLog();
             document.getElementById('logForm').reset();
             
-            // Recalculer le dashboard avec les nouvelles stats
             renderDashboard();
         }
 
@@ -2857,7 +2935,6 @@
                         .then(() => {
                             activeChar.xp = 0;
                             activeChar.achievements = [];
-                            refresh();
                             renderLog();
                             renderAchievements();
                             alert("Données réinitialisées avec succès !");
@@ -2904,20 +2981,422 @@
             }
         }
 
-        // ========== OBJECTIF ATTEINT ==========
-        function goalAchieved() {
+        // ========== OGS INTEGRATION ==========
+        async function fetchOGSPlayerData(username) {
+            try {
+                console.log('🔍 Recherche du joueur OGS:', username);
+                
+                const searchResponse = await fetch(`https://online-go.com/api/v1/players/?username=${encodeURIComponent(username)}`);
+                const searchData = await searchResponse.json();
+                
+                if (searchData.results && searchData.results.length > 0) {
+                    const player = searchData.results[0];
+                    const playerId = player.id;
+                    
+                    const playerResponse = await fetch(`https://online-go.com/api/v1/players/${playerId}`);
+                    const playerData = await playerResponse.json();
+                    
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    const fromDate = thirtyDaysAgo.toISOString().split('T')[0];
+                    
+                    const gamesResponse = await fetch(`https://online-go.com/api/v1/players/${playerId}/games?ended__gte=${fromDate}&page_size=50`);
+                    const gamesData = await gamesResponse.json();
+                    
+                    return {
+                        player: playerData,
+                        recentGames: gamesData.results || []
+                    };
+                } else {
+                    throw new Error('Joueur OGS non trouvé');
+                }
+            } catch (error) {
+                console.error('Erreur OGS API:', error);
+                return null;
+            }
+        }
+
+        function calculateOGSLevel(rating) {
+            if (rating >= 3000) return "9p";
+            if (rating >= 2800) return "8p";
+            if (rating >= 2600) return "7p";
+            if (rating >= 2400) return "6p";
+            if (rating >= 2200) return "5p";
+            if (rating >= 2000) return "4p";
+            if (rating >= 1800) return "3p";
+            if (rating >= 1600) return "2p";
+            if (rating >= 1400) return "1p";
+            if (rating >= 1200) return "1d";
+            if (rating >= 1100) return "2d";
+            if (rating >= 1000) return "3d";
+            if (rating >= 900) return "4d";
+            if (rating >= 800) return "5d";
+            if (rating >= 700) return "6d";
+            if (rating >= 600) return "7d";
+            if (rating >= 500) return "1k";
+            if (rating >= 400) return "2k";
+            if (rating >= 300) return "3k";
+            if (rating >= 200) return "4k";
+            if (rating >= 100) return "5k";
+            if (rating >= 0) return "6k";
+            if (rating >= -100) return "7k";
+            if (rating >= -200) return "8k";
+            if (rating >= -300) return "9k";
+            return "10k";
+        }
+
+        async function syncWithOGS() {
             if (!activeChar) return;
             
-            const newGoal = prompt(trad[lang].goalCongratulations.replace('{goal}', activeChar.goal));
-            if (newGoal) {
-                activeChar.goal = newGoal;
-                db.collection("characters").doc(activeChar.id).update({
-                    goal: newGoal
+            const ogsUsername = activeChar.ogsUsername;
+            if (!ogsUsername) {
+                alert('Veuillez d\'abord configurer votre nom d\'utilisateur OGS dans votre profil');
+                showPage('profile');
+                return;
+            }
+            
+            showNotification('🔄 Synchronisation avec OGS en cours...');
+            
+            try {
+                const ogsData = await fetchOGSPlayerData(ogsUsername);
+                
+                if (ogsData) {
+                    const player = ogsData.player;
+                    const recentGames = ogsData.recentGames;
+                    
+                    const today = new Date();
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(today.getDate() - 30);
+                    
+                    const recentGamesStats = recentGames.filter(game => {
+                        if (!game.ended) return false;
+                        const gameDate = new Date(game.ended);
+                        return gameDate >= thirtyDaysAgo;
+                    });
+                    
+                    const wins = recentGamesStats.filter(game => {
+                        return game.players && 
+                               ((game.players.white.id === player.id && game.outcome && game.outcome.startsWith('W+')) ||
+                                (game.players.black.id === player.id && game.outcome && game.outcome.startsWith('B+')));
+                    }).length;
+                    
+                    const totalGames = recentGamesStats.length;
+                    const losses = totalGames - wins;
+                    const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+                    
+                    updateOGSDashboard(player, wins, losses, totalGames, winRate);
+                    
+                    showNotification(`✅ Données OGS synchronisées ! ${totalGames} parties trouvées.`);
+                    
+                } else {
+                    alert('❌ Impossible de récupérer les données OGS. Vérifiez votre nom d\'utilisateur.');
+                }
+            } catch (error) {
+                console.error('Erreur synchronisation OGS:', error);
+                alert('❌ Erreur de synchronisation avec OGS');
+            }
+        }
+
+        function updateOGSDashboard(player, wins, losses, totalGames, winRate) {
+            const ogsStats = document.getElementById('ogsDashboardStats');
+            if (ogsStats) {
+                ogsStats.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                        <div class="dashboard-card">
+                            <h3>⭐ Rating OGS</h3>
+                            <div class="stat-number">${Math.round(player.rating)}</div>
+                            <div class="stat-label">${calculateOGSLevel(player.rating)}</div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>📈 Win Rate (30j)</h3>
+                            <div class="stat-number">${winRate}%</div>
+                            <div class="stat-label">${wins}V / ${losses}D</div>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem; color: var(--rouge);">Importer dans le carnet</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div><strong>Parties:</strong> ${totalGames}</div>
+                            <div><strong>Victoires:</strong> ${wins}</div>
+                            <div><strong>Défaites:</strong> ${losses}</div>
+                            <div><strong>Niveau:</strong> ${calculateOGSLevel(player.rating)}</div>
+                        </div>
+                        <button onclick="showPage('ogsImport')" class="btn-primary" style="width: 100%; padding: 0.5rem;">
+                            📥 Importer Manuellement
+                        </button>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; opacity: 0.8;">
+                        <span>Dernière sync: ${new Date().toLocaleTimeString()}</span>
+                        <button onclick="syncWithOGS()" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">🔄 Resync</button>
+                    </div>
+                `;
+            }
+        }
+
+        // ========== PAGE IMPORT MANUEL OGS ==========
+        function renderOGSImportPage() {
+            if (!activeChar) return '';
+            
+            return `
+                <div class="frame">
+                    <h2>📥 Import Manuel depuis OGS</h2>
+                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <p>Les données OGS ont été synchronisées. Vérifiez et ajustez les valeurs ci-dessous avant l'import.</p>
+                    </div>
+                    
+                    <form id="ogsImportForm">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <label>Niveau OGS</label>
+                                <select id="ogsImportLevel" class="form-input">
+                                    ${levels.map(level => `<option value="${level}">${level}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label>Parties jouées (30j)</label>
+                                <input type="number" id="ogsImportGames" class="form-input" min="0" value="0">
+                            </div>
+                            <div>
+                                <label>Victoires</label>
+                                <input type="number" id="ogsImportWins" class="form-input" min="0" value="0">
+                            </div>
+                            <div>
+                                <label>Défaites</label>
+                                <input type="number" id="ogsImportLosses" class="form-input" min="0" value="0">
+                            </div>
+                        </div>
+                        
+                        <label>Notes (optionnel)</label>
+                        <textarea id="ogsImportNotes" class="form-input" placeholder="Ex: Parties OGS synchronisées..." style="min-height: 80px;"></textarea>
+                        
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="button" onclick="importOGSData()" class="btn-primary">
+                                ✅ Importer dans le carnet
+                            </button>
+                            <button type="button" onclick="showPage('dashboard')" class="btn-secondary">
+                                ❌ Annuler
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+
+        async function importOGSData() {
+            if (!activeChar) return;
+            
+            const level = document.getElementById('ogsImportLevel').value;
+            const games = parseInt(document.getElementById('ogsImportGames').value);
+            const wins = parseInt(document.getElementById('ogsImportWins').value);
+            const losses = parseInt(document.getElementById('ogsImportLosses').value);
+            const notes = document.getElementById('ogsImportNotes').value;
+            
+            if (wins + losses !== games) {
+                alert("Le nombre de victoires + défaites doit égaler le nombre total de parties !");
+                return;
+            }
+            
+            if (games === 0) {
+                alert("Aucune partie à importer !");
+                return;
+            }
+            
+            try {
+                const day = new Date().getDate();
+                const trainingData = {
+                    day: day,
+                    games: games,
+                    wins: wins,
+                    tsu: 0,
+                    time: Math.round(games * 30),
+                    oppLevel: level,
+                    notes: `[OGS] ${notes}`,
+                    date: new Date().toISOString(),
+                    xpGain: games * 15
+                };
+                
+                await db.collection("training_logs").add({
+                    ...trainingData,
+                    characterId: activeChar.id,
+                    characterName: activeChar.name,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    source: 'ogs_import'
                 });
-                alert(trad[lang].newGoalSet.replace('{goal}', newGoal));
-                refresh();
-                renderWeeklyProgram();
+                
+                const newXp = activeChar.xp + trainingData.xpGain;
+                await db.collection("characters").doc(activeChar.id).update({
+                    xp: newXp,
+                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                activeChar.xp = newXp;
+                
+                showNotification(`✅ ${games} parties OGS importées ! +${trainingData.xpGain} XP`);
+                showPage('dashboard');
                 renderDashboard();
+                updateLevelDisplay();
+                
+            } catch (error) {
+                console.error("Erreur import OGS:", error);
+                alert("Erreur lors de l'import: " + error.message);
+            }
+        }
+
+        // ========== BARRE DE RECHERCHE PROFILS ==========
+        function renderSearchPage() {
+            return `
+                <div class="frame">
+                    <h2>🔍 Rechercher un Joueur</h2>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="playerSearch" class="form-input" placeholder="Nom du joueur..." style="flex: 1;">
+                        <button onclick="searchPlayer()" class="btn-primary">Rechercher</button>
+                    </div>
+                    <div id="searchResults" style="margin-top: 1rem;"></div>
+                </div>
+            `;
+        }
+
+        async function searchPlayer() {
+            const searchTerm = document.getElementById('playerSearch').value.trim();
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (!searchTerm) {
+                resultsDiv.innerHTML = '<div style="text-align: center; opacity: 0.7;">Entrez un nom à rechercher</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = '<div style="text-align: center;">🔍 Recherche en cours...</div>';
+            
+            try {
+                const snapshot = await db.collection("characters")
+                    .where("nameLower", ">=", searchTerm.toLowerCase())
+                    .where("nameLower", "<=", searchTerm.toLowerCase() + '\uf8ff')
+                    .limit(10)
+                    .get();
+                
+                if (snapshot.empty) {
+                    resultsDiv.innerHTML = '<div style="text-align: center; opacity: 0.7;">Aucun joueur trouvé</div>';
+                    return;
+                }
+                
+                let resultsHTML = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
+                snapshot.forEach(doc => {
+                    const char = doc.data();
+                    const currentLevel = levelSystem.getCurrentLevel(char.xp);
+                    
+                    resultsHTML += `
+                        <div class="quest-item" onclick="viewPlayerProfile('${char.id}')" style="cursor: pointer;">
+                            <div style="font-size: 1.5rem;">${char.avatar}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold;">${char.name}</div>
+                                <div style="font-size: 0.8rem; opacity: 0.7;">
+                                    Niveau ${currentLevel.level} - ${currentLevel.rank} • ${char.xp} XP
+                                </div>
+                            </div>
+                            <div style="font-size: 0.8rem; opacity: 0.7;">
+                                ${char.level} → ${char.goal}
+                            </div>
+                        </div>
+                    `;
+                });
+                resultsHTML += '</div>';
+                
+                resultsDiv.innerHTML = resultsHTML;
+                
+            } catch (error) {
+                console.error("Erreur recherche:", error);
+                resultsDiv.innerHTML = '<div style="text-align: center; color: var(--rouge);">Erreur de recherche</div>';
+            }
+        }
+
+        function viewPlayerProfile(playerId) {
+            const player = characters.find(c => c.id === playerId);
+            if (player) {
+                sessionStorage.setItem('viewingProfile', JSON.stringify(player));
+                showPage('playerProfile');
+            }
+        }
+
+        // ========== PAGE PROFIL VISITEUR ==========
+        function renderPlayerProfilePage() {
+            const playerData = sessionStorage.getItem('viewingProfile');
+            if (!playerData) {
+                showPage('search');
+                return '';
+            }
+            
+            const player = JSON.parse(playerData);
+            const currentLevel = levelSystem.getCurrentLevel(player.xp);
+            
+            return `
+                <div class="frame">
+                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem;">
+                        <button onclick="showPage('search')" class="btn-secondary">← Retour</button>
+                        <h2 style="margin: 0 auto;">👤 Profil de ${player.name}</h2>
+                    </div>
+                    
+                    <div class="profile-header">
+                        <span class="profile-avatar">${player.avatar}</span>
+                        <div class="profile-info">
+                            <div class="profile-name">${player.name}</div>
+                            <div style="opacity:.7;">Niveau ${currentLevel.level} - ${currentLevel.rank}</div>
+                            <div style="font-size:.9rem;opacity:.9;margin-top:.3rem;">${player.quote || ''}</div>
+                        </div>
+                    </div>
+
+                    <div class="profile-details">
+                        <div class="profile-detail">
+                            <span class="detail-value">${player.xp}</span>
+                            <span class="detail-label">XP</span>
+                        </div>
+                        <div class="profile-detail">
+                            <span class="detail-value">${player.level}</span>
+                            <span class="detail-label">Niveau actuel</span>
+                        </div>
+                        <div class="profile-detail">
+                            <span class="detail-value">${player.goal}</span>
+                            <span class="detail-label">Objectif</span>
+                        </div>
+                        <div class="profile-detail">
+                            <span class="detail-value">${currentLevel.rank}</span>
+                            <span class="detail-label">Rang</span>
+                        </div>
+                    </div>
+                    
+                    ${player.ogsUsername ? `
+                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                            <div style="color: var(--rouge); font-weight: bold; margin-bottom: 0.5rem;">🌐 Compte OGS</div>
+                            <div>${player.ogsUsername}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function saveOGSUsername() {
+            if (!activeChar) return;
+            
+            const ogsUsername = document.getElementById('ogsUsername').value.trim();
+            if (!ogsUsername) {
+                alert('Veuillez entrer un nom d\'utilisateur OGS');
+                return;
+            }
+            
+            activeChar.ogsUsername = ogsUsername;
+            
+            if (db && activeChar.id) {
+                db.collection("characters").doc(activeChar.id).update({
+                    ogsUsername: ogsUsername
+                }).then(() => {
+                    alert('Nom d\'utilisateur OGS sauvegardé !');
+                    const ogsSection = document.getElementById('ogsDashboardSection');
+                    if (ogsSection) {
+                        ogsSection.style.display = 'block';
+                    }
+                }).catch(error => {
+                    console.error('Erreur sauvegarde OGS:', error);
+                    alert('Erreur lors de la sauvegarde');
+                });
             }
         }
 
@@ -2985,55 +3464,27 @@
                     return;
                 }
                 
-                const script1 = document.createElement('script');
-                script1.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js";
-                
-                script1.onload = () => {
-                    console.log("✅ firebase-app.js chargé");
-                    
-                    const script2 = document.createElement('script');
-                    script2.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js";
-                    
-                    script2.onload = () => {
-                        console.log("✅ firebase-firestore.js chargé");
-                        
-                        try {
-                            const firebaseConfig = {
-                                apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
-                                authDomain: "fox-rpg-406d6.firebaseapp.com",
-                                projectId: "fox-rpg-406d6",
-                                storageBucket: "fox-rpg-406d6.firebasestorage.app",
-                                messagingSenderId: "218915576778",
-                                appId: "1:218915576778:web:8b03757d20b8451e428d33"
-                            };
-                            
-                            firebase.initializeApp(firebaseConfig);
-                            db = firebase.firestore();
-                            firebaseInitialized = true;
-                            
-                            console.log("🔥 Firebase initialisé avec succès !");
-                            resolve(true);
-                            
-                        } catch (error) {
-                            console.error("❌ Erreur initialisation Firebase:", error);
-                            reject(error);
-                        }
-                    };
-                    
-                    script2.onerror = () => {
-                        console.error("❌ Erreur chargement Firestore");
-                        reject(new Error('Firestore loading failed'));
-                    };
-                    
-                    document.head.appendChild(script2);
+                const firebaseConfig = {
+                    apiKey: "AIzaSyCwsLjRnPj6j4bVmrjPhgGAthYGSbNZe0B",
+                    authDomain: "fox-rpg-406d6.firebaseapp.com",
+                    projectId: "fox-rpg-406d6",
+                    storageBucket: "fox-rpg-406d6.firebasestorage.app",
+                    messagingSenderId: "218915576778",
+                    appId: "1:218915576778:web:8b03757d20b8451e428d33"
                 };
                 
-                script1.onerror = () => {
-                    console.error("❌ Erreur chargement Firebase App");
-                    reject(new Error('Firebase App loading failed'));
-                };
-                
-                document.head.appendChild(script1);
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    firebaseInitialized = true;
+                    
+                    console.log("🔥 Firebase initialisé avec succès !");
+                    resolve(true);
+                    
+                } catch (error) {
+                    console.error("❌ Erreur initialisation Firebase:", error);
+                    reject(error);
+                }
             });
             
             return firebaseInitializationPromise;
@@ -3173,44 +3624,13 @@
         function refreshTraining() {
             renderWeeklyProgram();
             renderAchievements();
-            checkGoalAchievement();
+            checkAndUpdateGoal();
             renderLog();
         }
 
-        // ========== OGS INTEGRATION (PLACEHOLDER) ==========
-        async function syncWithOGS() {
-            alert("Fonctionnalité OGS en cours de développement...");
-        }
-
+        // ========== OGS RANKING PLACEHOLDER ==========
         async function loadOGSRanking() {
             alert("Classement OGS en cours de développement...");
-        }
-
-        function saveOGSUsername() {
-            if (!activeChar) return;
-            
-            const ogsUsername = document.getElementById('ogsUsername').value.trim();
-            if (!ogsUsername) {
-                alert('Veuillez entrer un nom d\'utilisateur OGS');
-                return;
-            }
-            
-            activeChar.ogsUsername = ogsUsername;
-            
-            if (db && activeChar.id) {
-                db.collection("characters").doc(activeChar.id).update({
-                    ogsUsername: ogsUsername
-                }).then(() => {
-                    alert('Nom d\'utilisateur OGS sauvegardé !');
-                    const ogsSection = document.getElementById('ogsDashboardSection');
-                    if (ogsSection) {
-                        ogsSection.style.display = 'block';
-                    }
-                }).catch(error => {
-                    console.error('Erreur sauvegarde OGS:', error);
-                    alert('Erreur lors de la sauvegarde');
-                });
-            }
         }
         
         // ========== INITIALISATION ==========
@@ -3234,9 +3654,9 @@
             }
             
             let foxClicks = 0;
-            const activeEmoji = document.getElementById('activeEmoji');
-            if (activeEmoji) {
-                activeEmoji.onclick = () => {
+            const dashboardEmoji = document.getElementById('dashboardEmoji');
+            if (dashboardEmoji) {
+                dashboardEmoji.onclick = () => {
                     foxClicks++;
                     if (foxClicks === 7) { 
                         alert("🦊 : Tu es un vrai renard ! Continue à t'entraîner !"); 
